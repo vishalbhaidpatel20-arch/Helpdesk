@@ -50,6 +50,8 @@ Better Auth with email/password and database-backed sessions (Prisma adapter, Po
 - First admin comes from the seed script: `bun run --cwd server db:seed`, which reads `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` from `.env`. It is idempotent and creates users through Better Auth's internal adapter (`ctx.internalAdapter`) because sign-up is disabled.
 - Env vars: `CLIENT_URL` (required; the server throws on startup without it and uses it as the trusted origin), plus Better Auth's own secret and base URL variables. `server/src/index.ts` currently hardcodes CORS to `http://localhost:5173`.
 - Client: `client/src/lib/auth-client.ts` creates the client with no `baseURL`; requests go to the current origin and Vite proxies `/api` to the server on port 3000.
+- Client role access: `authClient` uses `inferAdditionalFields`, so `session.user.role` is typed. Admin-only pages go inside `<AdminRoute />` (`client/src/components/AdminRoute.tsx`), which redirects non-admins to `/`; the nav link to `/users` in `Layout.tsx` shows only for admins. Current admin-only page: `/users`.
+- Dev test agent (local only): `agent@example.com` / `password123`, role `AGENT`, created via the internal adapter like the seed admin.
 - Route protection: `client/src/components/Layout.tsx` wraps authenticated pages and redirects to `/login` without a session. `LoginPage` redirects to `/` when already signed in. Both use `authClient.useSession()`. These checks are UI-only; protect server routes by checking the session with `auth.api.getSession`.
 
 ## Documentation lookup (Context7)
