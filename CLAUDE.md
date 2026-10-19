@@ -28,6 +28,7 @@ Run from the repo root unless noted.
 - `bun run --cwd server typecheck` — typecheck the server
 - `bun run --cwd server db:migrate` — create/apply a Prisma migration
 - `bun run --cwd server db:generate` — regenerate the Prisma client
+- `bun run test:e2e` — run the Playwright e2e tests (`test:e2e:ui` for the UI runner)
 
 ## Conventions
 
@@ -52,6 +53,16 @@ Better Auth with email/password and database-backed sessions (Prisma adapter, Po
 - Client: `client/src/lib/auth-client.ts` creates the client with no `baseURL`; requests go to the current origin and Vite proxies `/api` to the server on port 3000.
 - Client role access: `authClient` uses `inferAdditionalFields`, so `session.user.role` is typed. Admin-only pages go inside `<AdminRoute />` (`client/src/components/AdminRoute.tsx`), which redirects non-admins to `/`; the nav link to `/users` in `Layout.tsx` shows only for admins. Current admin-only page: `/users`.
 - Route protection: `client/src/components/Layout.tsx` wraps authenticated pages and redirects to `/login` without a session. `LoginPage` redirects to `/` when already signed in. Both use `authClient.useSession()`. These checks are UI-only; protect server routes by checking the session with `auth.api.getSession`.
+
+## End-to-end tests
+
+Playwright tests live in `e2e/`; config is `playwright.config.ts` at the repo root.
+
+- **Use the `e2e-test-writer` subagent (`.claude/agents/e2e-test-writer.md`) for writing, updating, or fixing e2e tests.** Do not write Playwright tests directly in the main session.
+- Isolated test environment: Playwright starts the API on port 3001 and the client on port 5174 (never the dev ports 3000/5173). `server/scripts/test-server.ts` loads `server/.env.test` (gitignored; copy from `.env.test.example`), then resets and seeds the separate `helpdesk_test` database before each run. It refuses any database name not ending in `_test`.
+- The seed creates only the admin (`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` from `.env.test`). Tests that need other users, such as an agent, must create them themselves, since public sign-up is disabled.
+- Rate limiting is production-only, so tests can sign in repeatedly.
+- `prisma migrate reset` is blocked for AI agents by Prisma's safeguard. If it blocks a run, stop and ask the user to run it; never set `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` without the user's explicit consent.
 
 ## Documentation lookup (Context7)
 
