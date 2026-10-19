@@ -11,7 +11,8 @@ Reference docs in the repo root:
 
 Bun workspaces monorepo (`client`, `server`).
 
-- `client/` — React 19 + TypeScript, Vite, Tailwind CSS v4, React Router
+- `client/` — React 19 + TypeScript, Vite, Tailwind CSS v4, shadcn/ui (radix-nova), React Router
+  - `client/src/components/ui/` shadcn components; `@/` aliases `client/src/`
 - `server/` — Express 5 + TypeScript running on Bun, Prisma 7 with PostgreSQL (`@prisma/adapter-pg`)
   - `server/prisma/` schema and migrations; `server/generated/` is Prisma client output (do not edit)
 
@@ -35,7 +36,21 @@ Run from the repo root unless noted.
 - Authentication uses database-backed sessions, not JWTs.
 - AI features (classification, summaries, suggested replies) use the Claude API.
 - Ticket statuses: Open, Resolved, Closed. Categories: General Question, Technical Question, Refund Request.
+- Client styling is Tailwind utilities and shadcn/ui components with the default theme. No custom CSS: `client/src/index.css` holds only the Tailwind/shadcn theme output.
+- After `bunx shadcn add`, check new files in `components/ui/` for `from "cn"` (an unrelated npm package) and change it to `@/lib/utils`. Don't add `baseUrl` to the tsconfigs (deprecated in TS 6); the `@/*` alias uses `paths` only.
 - Secrets live in `.env` (loaded with dotenv); never commit them.
+
+## Authentication
+
+Better Auth with email/password and database-backed sessions (Prisma adapter, PostgreSQL).
+
+- Server config: `server/src/auth.ts`. The handler is mounted at `/api/auth/*splat` in `server/src/index.ts`, **before** `express.json()` (which would consume the request body). Keep that order.
+- Public sign-up is disabled (`disableSignUp: true`). Users are created only by an admin; there is no self-registration.
+- Roles: `Role` enum `ADMIN` | `AGENT` on `User.role`. It defaults to `AGENT` and is not settable from client input (`input: false`).
+- First admin comes from the seed script: `bun run --cwd server db:seed`, which reads `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` from `.env`. It is idempotent and creates users through Better Auth's internal adapter (`ctx.internalAdapter`) because sign-up is disabled.
+- Env vars: `CLIENT_URL` (required; the server throws on startup without it and uses it as the trusted origin), plus Better Auth's own secret and base URL variables. `server/src/index.ts` currently hardcodes CORS to `http://localhost:5173`.
+- Client: `client/src/lib/auth-client.ts` creates the client with no `baseURL`; requests go to the current origin and Vite proxies `/api` to the server on port 3000.
+- Route protection: `client/src/components/Layout.tsx` wraps authenticated pages and redirects to `/login` without a session. `LoginPage` redirects to `/` when already signed in. Both use `authClient.useSession()`. These checks are UI-only; protect server routes by checking the session with `auth.api.getSession`.
 
 ## Documentation lookup (Context7)
 

@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useNavigate } from 'react-router'
+import { Button } from '@/components/ui/button'
 import { authClient } from '../lib/auth-client'
 
 // Layout for authenticated pages: redirects to /login without a session and renders the nav bar
@@ -16,17 +17,13 @@ export default function Layout() {
 
   return (
     <>
-      <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
+      <nav className="flex items-center justify-between border-b bg-background px-6 py-3">
         <span className="text-lg font-bold">Helpdesk</span>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-700">{session.user.name}</span>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100"
-          >
+          <span className="text-sm text-muted-foreground">{session.user.name}</span>
+          <Button type="button" variant="outline" size="sm" onClick={handleSignOut}>
             Sign out
-          </button>
+          </Button>
         </div>
       </nav>
       <Outlet />
