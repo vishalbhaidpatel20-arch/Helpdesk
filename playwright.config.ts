@@ -11,11 +11,12 @@ const baseURL = `http://localhost:${clientPort}`
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: './e2e/test-results',
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['list'], ['html', { open: 'never', outputFolder: './e2e/playwright-report' }]],
   use: {
     baseURL,
     trace: 'on-first-retry',

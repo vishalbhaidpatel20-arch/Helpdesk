@@ -5,7 +5,8 @@ import dotenv from 'dotenv'
 
 const serverDir = path.resolve(import.meta.dir, '..')
 
-process.env.NODE_ENV = 'test'
+// Not 'test': Better Auth skips its origin/CSRF checks under NODE_ENV=test, and e2e must exercise them
+process.env.NODE_ENV = 'development'
 dotenv.config({ path: path.join(serverDir, '.env.test'), override: true })
 
 const databaseUrl = process.env.DATABASE_URL
