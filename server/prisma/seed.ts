@@ -17,6 +17,14 @@ const existing = await prisma.user.findUnique({ where: { email } })
 if (existing) {
   console.log(`Admin ${email} already exists, skipping`)
 } else {
+  // The internal adapter bypasses Better Auth's password validation, so enforce it here
+  const { minPasswordLength, maxPasswordLength } = ctx.password.config
+  if (password.length < minPasswordLength || password.length > maxPasswordLength) {
+    throw new Error(
+      `SEED_ADMIN_PASSWORD must be ${minPasswordLength}-${maxPasswordLength} characters`,
+    )
+  }
+
   // Go through the internal adapter since public sign-up is disabled
   const user = await ctx.internalAdapter.createUser({
     email,

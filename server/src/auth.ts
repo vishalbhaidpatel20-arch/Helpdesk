@@ -10,7 +10,15 @@ if (!clientUrl) {
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
-  emailAndPassword: { enabled: true, disableSignUp: true },
+  emailAndPassword: {
+    enabled: true,
+    disableSignUp: true,
+    minPasswordLength: 12,
+    maxPasswordLength: 128,
+  },
+  // Off by default outside production; keep it on so sign-in throttling (3 per 10s) applies everywhere
+  rateLimit: { enabled: true },
+  advanced: { useSecureCookies: process.env.NODE_ENV === 'production' },
   trustedOrigins: [clientUrl],
   user: {
     additionalFields: {
