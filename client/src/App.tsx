@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router'
+import Layout from './components/Layout'
+import LoginPage from './pages/LoginPage'
 
 function Home() {
   const [status, setStatus] = useState('checking...')
@@ -13,7 +15,7 @@ function Home() {
 
   return (
     <main className="mx-auto max-w-xl p-8">
-      <h1 className="text-3xl font-bold">Helpdesk</h1>
+      <h1 className="text-3xl font-bold">Home</h1>
       <p className="mt-2 text-gray-600">API status: {status}</p>
     </main>
   )
@@ -23,7 +25,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<Home />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   )
