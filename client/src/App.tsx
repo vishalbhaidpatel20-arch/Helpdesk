@@ -1,19 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import AdminRoute from './components/AdminRoute'
 import Layout from './components/Layout'
+import { api } from './lib/api'
 import LoginPage from './pages/LoginPage'
 import UsersPage from './pages/UsersPage'
 
 function Home() {
-  const [status, setStatus] = useState('checking...')
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then((data: { status: string }) => setStatus(data.status))
-      .catch(() => setStatus('unreachable'))
-  }, [])
+  const { data, isPending, isError } = useQuery({
+    queryKey: ['health'],
+    queryFn: async ({ signal }) => (await api.get<{ status: string }>('/health', { signal })).data.status,
+  })
+  const status = isPending ? 'checking...' : isError ? 'unreachable' : data
 
   return (
     <main className="mx-auto max-w-xl p-8">

@@ -39,6 +39,7 @@ Run from the repo root unless noted.
 - Ticket statuses: Open, Resolved, Closed. Categories: General Question, Technical Question, Refund Request.
 - Client styling is Tailwind utilities and shadcn/ui components with the default theme. No custom CSS: `client/src/index.css` holds only the Tailwind/shadcn theme output.
 - After `bunx shadcn add`, check new files in `components/ui/` for `from "cn"` (an unrelated npm package) and change it to `@/lib/utils`. Don't add `baseUrl` to the tsconfigs (deprecated in TS 6); the `@/*` alias uses `paths` only.
+- Client data fetching: use axios, never `fetch`, through the shared instance in `client/src/lib/api.ts` (`baseURL: '/api'`). Wrap calls in TanStack Query (`@tanstack/react-query`) with `useQuery` / `useMutation`, usually in a hook under `client/src/hooks/` (see `useUsers`), and pass the query's `signal` to axios. Don't fetch in `useEffect` with manual loading/error state. Better Auth calls go through `authClient`, not axios. The query cache is cleared on sign-out.
 - Secrets live in `.env` (loaded with dotenv); never commit them.
 
 ## Authentication

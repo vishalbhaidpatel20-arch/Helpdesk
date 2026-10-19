@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import axios from 'axios'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -8,35 +8,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-
-type User = {
-  id: string
-  name: string
-  email: string
-  role: 'ADMIN' | 'AGENT'
-  createdAt: string
-}
+import { useUsers } from '@/hooks/useUsers'
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const controller = new AbortController()
-
-    fetch('/api/users', { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(res.status === 403 ? 'Not allowed' : 'Failed to load users')
-        const data: { users: User[] } = await res.json()
-        setUsers(data.users)
-      })
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === 'AbortError') return
-        setError(err instanceof Error ? err.message : 'Failed to load users')
-      })
-
-    return () => controller.abort()
-  }, [])
+  const { data: users, error: queryError } = useUsers()
+  const error = queryError
+    ? axios.isAxiosError(queryError) && queryError.response?.status === 403
+      ? 'Not allowed'
+      : 'Failed to load users'
+    : null
 
   return (
     <main className="mx-auto max-w-4xl p-8">
@@ -46,7 +26,7 @@ export default function UsersPage() {
         <p role="alert" className="mt-4 text-sm text-destructive">
           {error}
         </p>
-      ) : users === null ? (
+      ) : users === undefined ? (
         <p className="mt-4 text-sm text-muted-foreground">Loading users...</p>
       ) : (
         <Table className="mt-6">

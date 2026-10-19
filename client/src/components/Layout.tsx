@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, Outlet, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { authClient } from '../lib/auth-client'
@@ -5,6 +6,7 @@ import { authClient } from '../lib/auth-client'
 // Layout for authenticated pages: redirects to /login without a session and renders the nav bar
 export default function Layout() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { data: session, isPending } = authClient.useSession()
 
   if (isPending) return null
@@ -12,6 +14,8 @@ export default function Layout() {
 
   async function handleSignOut() {
     await authClient.signOut()
+    // Drop cached server data so the next user never sees the previous user's responses
+    queryClient.clear()
     navigate('/login', { replace: true })
   }
 
