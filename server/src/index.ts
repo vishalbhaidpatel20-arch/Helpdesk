@@ -4,6 +4,7 @@ import express from 'express'
 import type { NextFunction, Request, Response } from 'express'
 import helmet from 'helmet'
 import { auth } from './auth'
+import { usersRouter } from './routes/users'
 
 const app = express()
 const port = Number(process.env.PORT ?? 3000)
@@ -19,6 +20,8 @@ app.use(express.json())
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' })
 })
+
+app.use('/api/users', usersRouter)
 
 // Terminal error handler: log details server-side, never leak stack traces to clients
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
