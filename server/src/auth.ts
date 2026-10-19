@@ -16,8 +16,8 @@ export const auth = betterAuth({
     minPasswordLength: 12,
     maxPasswordLength: 128,
   },
-  // Off by default outside production; keep it on so sign-in throttling (3 per 10s) applies everywhere
-  rateLimit: { enabled: true },
+  // Production only: dev and e2e runs sign in repeatedly and would trip the sign-in limit (3 per 10s)
+  rateLimit: { enabled: process.env.NODE_ENV === 'production' },
   advanced: { useSecureCookies: process.env.NODE_ENV === 'production' },
   trustedOrigins: [clientUrl],
   user: {
