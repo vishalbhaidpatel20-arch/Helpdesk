@@ -28,6 +28,8 @@ Run from the repo root unless noted.
 - `bun run --cwd server typecheck` — typecheck the server
 - `bun run --cwd server db:migrate` — create/apply a Prisma migration
 - `bun run --cwd server db:generate` — regenerate the Prisma client
+- `bun run --cwd client test` — run client component tests (Vitest + React Testing Library, jsdom; files are `*.test.tsx` next to the code, setup in `client/src/test/setup.ts`; mock `@/lib/api` rather than the network)
+- `bun run --cwd client test:watch` — Vitest watch mode: reruns affected component tests on every save, for writing tests
 - `bun run test:e2e` — run the Playwright e2e tests (`test:e2e:ui` for the UI runner)
 
 ## Conventions
@@ -54,6 +56,19 @@ Better Auth with email/password and database-backed sessions (Prisma adapter, Po
 - Client: `client/src/lib/auth-client.ts` creates the client with no `baseURL`; requests go to the current origin and Vite proxies `/api` to the server on port 3000.
 - Client role access: `authClient` uses `inferAdditionalFields`, so `session.user.role` is typed. Admin-only pages go inside `<AdminRoute />` (`client/src/components/AdminRoute.tsx`), which redirects non-admins to `/`; the nav link to `/users` in `Layout.tsx` shows only for admins. Current admin-only page: `/users`.
 - Route protection: `client/src/components/ProtectedRoute.tsx` wraps authenticated pages and redirects to `/login` without a session; `Layout.tsx` (inside it) renders the nav bar. `LoginPage` redirects to `/` when already signed in. All use `authClient.useSession()`. These checks are UI-only; protect server routes by checking the session with `auth.api.getSession`.
+
+## Component tests
+
+Client component tests use Vitest + React Testing Library (jsdom). They are separate from the Playwright e2e tests below.
+
+- **Run:** `bun run --cwd client test` for a single run; `bun run --cwd client test:watch` while writing. Run the tests, plus `bun run --cwd client build` (it typechecks the test files) and `lint`, after changing a component or its test, and report the real results.
+- **Where:** `*.test.tsx` next to the code under test (e.g. `client/src/pages/UsersPage.test.tsx`). Config is the `test` block in `client/vite.config.ts`; `client/src/test/setup.ts` loads the jest-dom matchers and cleanup. Vitest globals are off: import `describe`, `it`, `expect`, `vi` from `vitest`.
+- **Render helper:** use `renderWithQuery(ui)` from `@/test/renderWithQuery` for anything using TanStack Query. It creates a fresh `QueryClient` per call with retries off. Add other shared helpers to `client/src/test/`.
+- **Mocking:** mock `@/lib/api` with `vi.mock('@/lib/api', () => ({ api: { get: vi.fn() } }))` and set results per test (`mockResolvedValue`, `mockRejectedValue`, or a never-resolving promise for loading). Reset mocks in `beforeEach`. Build HTTP errors with `new AxiosError(..., { status } as AxiosResponse)` so `axios.isAxiosError` works. Never hit the network or the database. Mock `authClient` for components that use the session.
+- **Queries:** use accessible queries (`getByRole`, `getByLabelText`, `getByText`), scoped with `within` for rows. Use `findBy*` or `waitFor` for async results, never fixed timeouts. Use `data-slot="skeleton"` to detect skeletons. Don't assert on Tailwind classes or implementation details.
+- **Coverage per component:** loading, success, empty, and error states, plus role or permission variants. Compute expected values (e.g. dates) with the same function as the component instead of hardcoding locale output.
+- **Check the tests can fail:** temporarily break the component and confirm the relevant test fails, then restore it.
+- Don't test third-party UI (shadcn/Radix internals) or the server here. Server routes and full user flows belong in the e2e tests.
 
 ## End-to-end tests
 
