@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -26,10 +27,8 @@ export default function UsersPage() {
         <p role="alert" className="mt-4 text-sm text-destructive">
           {error}
         </p>
-      ) : users === undefined ? (
-        <p className="mt-4 text-sm text-muted-foreground">Loading users...</p>
       ) : (
-        <Table className="mt-6">
+        <Table className="mt-6" aria-busy={users === undefined}>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
@@ -39,7 +38,24 @@ export default function UsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.length === 0 ? (
+            {users === undefined ? (
+              Array.from({ length: 5 }, (_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <Skeleton className="h-4 w-32" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-48" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground">
                   No users found

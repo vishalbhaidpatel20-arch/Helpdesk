@@ -53,7 +53,7 @@ Better Auth with email/password and database-backed sessions (Prisma adapter, Po
 - Env vars: `CLIENT_URL` (required; the server throws on startup without it and uses it as the trusted origin), plus Better Auth's own secret and base URL variables. `server/src/index.ts` currently hardcodes CORS to `http://localhost:5173`.
 - Client: `client/src/lib/auth-client.ts` creates the client with no `baseURL`; requests go to the current origin and Vite proxies `/api` to the server on port 3000.
 - Client role access: `authClient` uses `inferAdditionalFields`, so `session.user.role` is typed. Admin-only pages go inside `<AdminRoute />` (`client/src/components/AdminRoute.tsx`), which redirects non-admins to `/`; the nav link to `/users` in `Layout.tsx` shows only for admins. Current admin-only page: `/users`.
-- Route protection: `client/src/components/Layout.tsx` wraps authenticated pages and redirects to `/login` without a session. `LoginPage` redirects to `/` when already signed in. Both use `authClient.useSession()`. These checks are UI-only; protect server routes by checking the session with `auth.api.getSession`.
+- Route protection: `client/src/components/ProtectedRoute.tsx` wraps authenticated pages and redirects to `/login` without a session; `Layout.tsx` (inside it) renders the nav bar. `LoginPage` redirects to `/` when already signed in. All use `authClient.useSession()`. These checks are UI-only; protect server routes by checking the session with `auth.api.getSession`.
 
 ## End-to-end tests
 

@@ -1,16 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Link, Navigate, Outlet, useNavigate } from 'react-router'
+import { Link, Outlet, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { authClient } from '../lib/auth-client'
 
-// Layout for authenticated pages: redirects to /login without a session and renders the nav bar
+// Layout for authenticated pages: renders the nav bar. Rendered inside ProtectedRoute, which guarantees a session.
 export default function Layout() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data: session, isPending } = authClient.useSession()
+  const { data: session } = authClient.useSession()
 
-  if (isPending) return null
-  if (!session) return <Navigate to="/login" replace />
+  if (!session) return null
 
   async function handleSignOut() {
     await authClient.signOut()
@@ -23,7 +22,9 @@ export default function Layout() {
     <>
       <nav className="flex items-center justify-between border-b bg-background px-6 py-3">
         <div className="flex items-center gap-6">
-          <span className="text-lg font-bold">Helpdesk</span>
+          <Link to="/" className="text-lg font-bold">
+            Helpdesk
+          </Link>
           {session.user.role === 'ADMIN' && (
             <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground">
               Users
