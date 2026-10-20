@@ -1,3 +1,4 @@
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@helpdesk/core'
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { Role } from '../generated/enums'
@@ -13,8 +14,8 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,
-    minPasswordLength: 12,
-    maxPasswordLength: 128,
+    minPasswordLength: PASSWORD_MIN_LENGTH,
+    maxPasswordLength: PASSWORD_MAX_LENGTH,
   },
   // Production only: dev and e2e runs sign in repeatedly and would trip the sign-in limit (3 per 10s)
   rateLimit: { enabled: process.env.NODE_ENV === 'production' },

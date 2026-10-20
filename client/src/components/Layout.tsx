@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
+import { Role } from '@/lib/roles'
 import { authClient } from '../lib/auth-client'
 
 // Layout for authenticated pages: renders the nav bar. Rendered inside ProtectedRoute, which guarantees a session.
@@ -25,7 +26,7 @@ export default function Layout() {
           <Link to="/" className="text-lg font-bold">
             Helpdesk
           </Link>
-          {session.user.role === 'ADMIN' && (
+          {session.user.role === Role.ADMIN && (
             <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground">
               Users
             </Link>

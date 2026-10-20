@@ -9,7 +9,9 @@ Reference docs in the repo root:
 
 ## Structure
 
-Bun workspaces monorepo (`client`, `server`).
+Bun workspaces monorepo (`core`, `client`, `server`).
+
+- `core/` — `@helpdesk/core`, shared TypeScript package (source-only, no build step) imported by both `client` and `server`. Currently holds zod schemas in `core/src/schemas/`, exported from `core/src/index.ts`.
 
 - `client/` — React 19 + TypeScript, Vite, Tailwind CSS v4, shadcn/ui (radix-nova), React Router
   - `client/src/components/ui/` shadcn components; `@/` aliases `client/src/`
@@ -42,6 +44,9 @@ Run from the repo root unless noted.
 - Client styling is Tailwind utilities and shadcn/ui components with the default theme. No custom CSS: `client/src/index.css` holds only the Tailwind/shadcn theme output.
 - After `bunx shadcn add`, check new files in `components/ui/` for `from "cn"` (an unrelated npm package) and change it to `@/lib/utils`. Don't add `baseUrl` to the tsconfigs (deprecated in TS 6); the `@/*` alias uses `paths` only.
 - Client data fetching: use axios, never `fetch`, through the shared instance in `client/src/lib/api.ts` (`baseURL: '/api'`). Wrap calls in TanStack Query (`@tanstack/react-query`) with `useQuery` / `useMutation`, usually in a hook under `client/src/hooks/` (see `useUsers`), and pass the query's `signal` to axios. Don't fetch in `useEffect` with manual loading/error state. Better Auth calls go through `authClient`, not axios. The query cache is cleared on sign-out.
+- Client forms use react-hook-form with a zod schema via `zodResolver` (`@hookform/resolvers/zod`), including the new-user form (`client/src/components/CreateUserForm.tsx`, shown in `CreateUserDialog`). Don't hand-roll form state or validation.
+- Define every zod schema used for validation (request bodies, forms) once in `core/src/schemas/` and export it from `core/src/index.ts`. Import it from `@helpdesk/core` in both client and server; never redefine or copy a schema in either one. Shared constants like password length limits live there too. Example: `createUserSchema` is used by `CreateUserForm` (via `zodResolver`) and by `POST /api/users`. Client forms use `zodResolver` with react-hook-form, and server routes `safeParse` request bodies (returning 400 with the first issue's message) rather than hand-written checks.
+- Express 5 forwards rejected promises from async route handlers to the error handler automatically, so don't wrap handlers in try/catch or write async wrappers; let errors propagate to the terminal handler in `server/src/index.ts` (use try/catch only to handle a specific expected error).
 - Secrets live in `.env` (loaded with dotenv); never commit them.
 
 ## Authentication
@@ -50,7 +55,7 @@ Better Auth with email/password and database-backed sessions (Prisma adapter, Po
 
 - Server config: `server/src/auth.ts`. The handler is mounted at `/api/auth/*splat` in `server/src/index.ts`, **before** `express.json()` (which would consume the request body). Keep that order.
 - Public sign-up is disabled (`disableSignUp: true`). Users are created only by an admin; there is no self-registration.
-- Roles: `Role` enum `ADMIN` | `AGENT` on `User.role`. It defaults to `AGENT` and is not settable from client input (`input: false`).
+- Roles: `Role` enum `ADMIN` | `AGENT` on `User.role`. Never hardcode role strings: on the server import `Role` from `server/generated/enums`; on the client use `Role` from `@/lib/roles` (mirrors the enum, since the client can't import server code). New users created from the Users page get `Role.AGENT`. It defaults to `AGENT` and is not settable from client input (`input: false`).
 - First admin comes from the seed script: `bun run --cwd server db:seed`, which reads `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` from `.env`. It is idempotent and creates users through Better Auth's internal adapter (`ctx.internalAdapter`) because sign-up is disabled.
 - Env vars: `CLIENT_URL` (required; the server throws on startup without it and uses it as the trusted origin), plus Better Auth's own secret and base URL variables. `server/src/index.ts` currently hardcodes CORS to `http://localhost:5173`.
 - Client: `client/src/lib/auth-client.ts` creates the client with no `baseURL`; requests go to the current origin and Vite proxies `/api` to the server on port 3000.
