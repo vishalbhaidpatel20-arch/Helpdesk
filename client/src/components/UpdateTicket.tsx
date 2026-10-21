@@ -1,4 +1,4 @@
-import { TicketCategory, TicketStatus, type Ticket } from '@helpdesk/core'
+import { AGENT_TICKET_STATUSES, TicketCategory, type Ticket, type UpdateTicketInput } from '@helpdesk/core'
 import Field from '@/components/Field'
 import TicketAssignee from '@/components/TicketAssignee'
 import { NativeSelect } from '@/components/ui/native-select'
@@ -24,9 +24,10 @@ export default function UpdateTicket({ ticket }: { ticket: Ticket }) {
             aria-label="Status"
             value={ticket.status}
             disabled={update.isPending}
-            onChange={(e) => update.mutate({ status: e.target.value as TicketStatus })}
+            onChange={(e) => update.mutate({ status: e.target.value as NonNullable<UpdateTicketInput['status']> })}
           >
-            {Object.values(TicketStatus).map((status) => (
+            {/* NEW and PROCESSING are system-only: shown while the AI works on the ticket, but not selectable */}
+            {[...new Set([ticket.status, ...AGENT_TICKET_STATUSES])].map((status) => (
               <option key={status} value={status}>
                 {statusLabels[status]}
               </option>

@@ -23,7 +23,7 @@ export default function ReplyThread({ ticketId }: { ticketId: string | undefined
           <Card size="sm">
             <CardContent className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                {reply.author.name} · {formatDateTime(reply.createdAt)}
+                {reply.author?.name ?? 'AI Assistant'} · {formatDateTime(reply.createdAt)}
               </p>
               {/* Reply text is plain text only */}
               <p className="whitespace-pre-wrap">{reply.body}</p>

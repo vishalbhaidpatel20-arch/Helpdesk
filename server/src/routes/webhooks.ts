@@ -1,9 +1,9 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
-import { inboundEmailSchema } from '@helpdesk/core'
+import { inboundEmailSchema, TicketStatus } from '@helpdesk/core'
 import { Router } from 'express'
 import { prisma } from '../db'
 import { parseBody } from '../lib/parseBody'
-import { enqueueClassifyTicket } from '../lib/queue'
+import { enqueueProcessTicket } from '../lib/queue'
 
 export const webhooksRouter = Router()
 
@@ -50,8 +50,11 @@ webhooksRouter.post('/inbound-email', async (req, res) => {
     }
   }
 
-  const ticket = await prisma.ticket.create({ data, select: { id: true } })
-  // Only queued here (a quick insert); a pg-boss worker calls the model and sets the category later
-  await enqueueClassifyTicket(ticket.id)
+  // Without an AI key nothing can process the ticket, so it is opened for the agents right away. Otherwise it is
+  // NEW (hidden from the list) until a pg-boss worker has classified it and tried to resolve it.
+  const aiEnabled = Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+  const status = aiEnabled ? TicketStatus.NEW : TicketStatus.OPEN
+  const ticket = await prisma.ticket.create({ data: { ...data, status }, select: { id: true } })
+  if (aiEnabled) await enqueueProcessTicket(ticket.id)
   res.status(201).json({ ticket })
 })

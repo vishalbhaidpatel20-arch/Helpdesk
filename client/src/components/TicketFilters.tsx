@@ -1,4 +1,4 @@
-import { TicketCategory, TicketStatus, type TicketListQuery } from '@helpdesk/core'
+import { AGENT_TICKET_STATUSES, TicketCategory, type TicketListQuery } from '@helpdesk/core'
 import TicketSearch from '@/components/TicketSearch'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/native-select'
@@ -19,11 +19,11 @@ export default function TicketFilters({ params, onChange }: Props) {
           id="ticket-status"
           value={params.status ?? ''}
           onChange={(e) =>
-            onChange({ status: e.target.value ? (e.target.value as TicketStatus) : undefined })
+            onChange({ status: e.target.value ? (e.target.value as (typeof AGENT_TICKET_STATUSES)[number]) : undefined })
           }
         >
           <option value="">All</option>
-          {Object.values(TicketStatus).map((status) => (
+          {AGENT_TICKET_STATUSES.map((status) => (
             <option key={status} value={status}>
               {statusLabels[status]}
             </option>

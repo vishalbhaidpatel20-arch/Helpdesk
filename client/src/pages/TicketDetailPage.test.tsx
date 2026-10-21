@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, type AxiosResponse } from 'axios'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { TicketCategory, TicketStatus, type TicketAgent, type Ticket, type TicketReply } from '@helpdesk/core'
+import { AGENT_TICKET_STATUSES, TicketCategory, TicketStatus, type TicketAgent, type Ticket, type TicketReply } from '@helpdesk/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
 import { categoryLabels, formatDateTime, statusLabels } from '@/lib/tickets'
@@ -162,8 +162,17 @@ describe('TicketDetailPage', () => {
     const status = await screen.findByLabelText('Status')
     const category = screen.getByLabelText('Category')
 
-    expect(optionNames(status)).toEqual(Object.values(TicketStatus).map((s) => statusLabels[s]))
+    expect(optionNames(status)).toEqual(AGENT_TICKET_STATUSES.map((s) => statusLabels[s]))
     expect(optionNames(category)).toEqual(['Uncategorized', ...Object.values(TicketCategory).map((c) => categoryLabels[c])])
+  })
+
+  it('shows the system-only status of a ticket the AI is still processing, without letting agents pick it', async () => {
+    mockApi({ data: { ...ticket, status: TicketStatus.PROCESSING } })
+    renderPage()
+    const status = await screen.findByLabelText('Status')
+
+    expect(status).toHaveValue(TicketStatus.PROCESSING)
+    expect(optionNames(status)).toEqual([statusLabels[TicketStatus.PROCESSING], ...AGENT_TICKET_STATUSES.map((s) => statusLabels[s])])
   })
 
   it('updates the status', async () => {

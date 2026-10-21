@@ -49,6 +49,14 @@ describe('ReplyThread', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 
+  it('labels a reply without an author as the AI Assistant', async () => {
+    get.mockResolvedValue({ data: { replies: [{ ...first, author: null }] } })
+    renderWithQuery(<ReplyThread ticketId="7" />)
+
+    const [item] = within(await screen.findByRole('list', { name: 'Replies' })).getAllByRole('listitem')
+    expect(item).toHaveTextContent(`AI Assistant · ${formatDateTime(first.createdAt)}`)
+  })
+
   it('lists each reply with its author, date and text in the order returned', async () => {
     get.mockResolvedValue({ data: { replies: [first, second] } })
     renderWithQuery(<ReplyThread ticketId="7" />)

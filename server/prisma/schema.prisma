@@ -79,6 +79,8 @@ enum Role {
 }
 
 enum TicketStatus {
+  NEW
+  PROCESSING
   OPEN
   RESOLVED
   CLOSED
@@ -98,7 +100,7 @@ model Ticket {
   senderEmail  String
   // Email Message-ID: lets the inbound webhook ignore provider retries of the same email
   messageId    String?         @unique
-  status       TicketStatus    @default(OPEN)
+  status       TicketStatus    @default(NEW)
   // No default: set later (e.g. by AI classification), null until then
   category     TicketCategory?
   // Agent the ticket is assigned to; null means unassigned
@@ -118,8 +120,9 @@ model Reply {
   id        Int      @id @default(autoincrement())
   ticketId  Int
   ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
+  // null for the AI assistant's automatic answer
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id])
   body      String
   createdAt DateTime @default(now())
 

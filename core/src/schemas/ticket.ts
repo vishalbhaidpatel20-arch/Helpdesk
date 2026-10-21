@@ -1,8 +1,19 @@
 import { z } from 'zod'
 
 // Mirror the Prisma enums of the same name (server/prisma/schema.prisma)
-export const TicketStatus = { OPEN: 'OPEN', RESOLVED: 'RESOLVED', CLOSED: 'CLOSED' } as const
+// NEW and PROCESSING are set by the system while the AI tries to resolve an incoming ticket (it then becomes
+// RESOLVED or OPEN). They are hidden from the ticket list and agents cannot choose them.
+export const TicketStatus = {
+  NEW: 'NEW',
+  PROCESSING: 'PROCESSING',
+  OPEN: 'OPEN',
+  RESOLVED: 'RESOLVED',
+  CLOSED: 'CLOSED',
+} as const
 export type TicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus]
+
+// The statuses shown in the ticket list, its status filter and the ticket's status select
+export const AGENT_TICKET_STATUSES = [TicketStatus.OPEN, TicketStatus.RESOLVED, TicketStatus.CLOSED] as const
 
 export const TicketCategory = {
   GENERAL_QUESTION: 'GENERAL_QUESTION',
@@ -43,7 +54,7 @@ export const MAX_TICKET_PAGE_SIZE = 100
 export const MAX_TICKET_SEARCH_LENGTH = 200
 
 export const ticketListQuerySchema = z.object({
-  status: z.enum(TicketStatus, { error: 'Invalid status' }).optional(),
+  status: z.enum(AGENT_TICKET_STATUSES, { error: 'Invalid status' }).optional(),
   category: z.enum(TicketCategory, { error: 'Invalid category' }).optional(),
   // Matches subject, sender name, sender email and message text; blank means no search
   search: z
@@ -93,7 +104,7 @@ export interface Ticket {
 export const updateTicketSchema = z
   .object({
     assignedToId: z.string({ error: 'Agent is invalid' }).min(1, 'Agent is invalid').nullable(),
-    status: z.enum(TicketStatus, { error: 'Invalid status' }),
+    status: z.enum(AGENT_TICKET_STATUSES, { error: 'Invalid status' }),
     category: z.enum(TicketCategory, { error: 'Invalid category' }).nullable(),
   })
   .partial()
@@ -138,6 +149,7 @@ export interface TicketSummary {
 export interface TicketReply {
   id: number
   body: string
-  author: TicketAgent
+  // null for the AI assistant's automatic answer
+  author: TicketAgent | null
   createdAt: string
 }

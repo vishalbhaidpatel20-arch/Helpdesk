@@ -2,6 +2,8 @@ import { TicketCategory, TicketStatus } from '@helpdesk/core'
 
 // Display labels for the ticket enums (the values themselves come from @helpdesk/core)
 export const statusLabels: Record<TicketStatus, string> = {
+  [TicketStatus.NEW]: 'New',
+  [TicketStatus.PROCESSING]: 'Processing',
   [TicketStatus.OPEN]: 'Open',
   [TicketStatus.RESOLVED]: 'Resolved',
   [TicketStatus.CLOSED]: 'Closed',

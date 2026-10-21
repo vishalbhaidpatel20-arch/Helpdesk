@@ -1,4 +1,4 @@
-import { createReplySchema, polishReplySchema, ticketListQuerySchema, updateTicketSchema } from '@helpdesk/core'
+import { createReplySchema, polishReplySchema, ticketListQuerySchema, TicketStatus, updateTicketSchema } from '@helpdesk/core'
 import { Router } from 'express'
 import { Role } from '../../generated/enums'
 import { prisma } from '../db'
@@ -35,7 +35,8 @@ ticketsRouter.get('/', requireAuth, async (req, res) => {
     ? { contains: search.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' as const }
     : undefined
   const where = {
-    status,
+    // Tickets the AI is still working on stay out of the list (and its total)
+    status: status ?? { notIn: [TicketStatus.NEW, TicketStatus.PROCESSING] },
     category,
     ...(contains && {
       OR: [
@@ -189,7 +190,7 @@ ticketsRouter.post('/:id/summary', requireAuth, async (req, res) => {
     res.status(404).json({ error: 'Ticket not found' })
     return
   }
-  const replies = ticket.replies.map(({ body, createdAt, author }) => ({ body, createdAt, authorName: author.name }))
+  const replies = ticket.replies.map(({ body, createdAt, author }) => ({ body, createdAt, authorName: author?.name ?? 'AI Assistant' }))
   try {
     res.json({ summary: await summarizeTicket(ticket, replies) })
   } catch (err) {

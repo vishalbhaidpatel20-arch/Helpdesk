@@ -22,13 +22,9 @@ export async function classifyTicket(ticket: { subject: string; body: string }) 
   return parseCategory(await generateWithFallback({ instructions, prompt }))
 }
 
-// Job handler (see queue.ts). Provider errors propagate so pg-boss retries the job. Only fills in a ticket
-// that is still unclassified, so an agent's manual choice made in the meantime is never overwritten.
-export async function classifyTicketJob(id: number) {
-  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) return
-  const ticket = await prisma.ticket.findUnique({ where: { id }, select: { subject: true, body: true, category: true } })
-  if (!ticket || ticket.category) return
-
+// Classification step of the ticket pipeline, independent of auto-resolve. Only fills in a ticket that is still
+// unclassified, so an agent's manual choice is never overwritten. Provider errors propagate to the caller.
+export async function classifyAndSaveTicket(id: number, ticket: { subject: string; body: string }) {
   const category = await classifyTicket(ticket)
   if (!category) {
     console.warn(`Ticket ${id}: the model returned no valid category`)
