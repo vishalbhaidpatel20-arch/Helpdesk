@@ -2,8 +2,10 @@ import { createReplySchema, polishReplySchema, ticketListQuerySchema, updateTick
 import { Router } from 'express'
 import { Role } from '../../generated/enums'
 import { prisma } from '../db'
+import { aiErrorMessage } from '../lib/aiError'
 import { parseBody, parseQuery } from '../lib/parseBody'
 import { polishReply } from '../lib/polishReply'
+import { summarizeTicket } from '../lib/summarizeTicket'
 import { requireAuth, type Session } from '../middleware/auth'
 
 export const ticketsRouter = Router()
@@ -155,7 +157,44 @@ ticketsRouter.post('/:id/replies/polish', requireAuth, async (req, res) => {
   } catch (err) {
     // A provider failure (bad key, no credits, rate limit) is not our bug: log it and tell the agent
     console.error(err)
-    res.status(502).json({ error: 'AI polishing is unavailable right now. Try again later.' })
+    res.status(502).json({ error: aiErrorMessage(err, 'AI polishing is unavailable right now. Try again later.') })
+  }
+})
+
+// Any signed-in user. Summarizes the ticket and its replies with AI. Generated fresh on every call (POST,
+// since it is a paid call) and never saved.
+ticketsRouter.post('/:id/summary', requireAuth, async (req, res) => {
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    res.status(503).json({ error: 'AI summaries are not configured' })
+    return
+  }
+  const id = parseTicketId(String(req.params.id))
+  const ticket =
+    id === undefined
+      ? null
+      : await prisma.ticket.findUnique({
+          where: { id },
+          select: {
+            subject: true,
+            body: true,
+            senderName: true,
+            createdAt: true,
+            replies: {
+              select: { body: true, createdAt: true, author: { select: { name: true } } },
+              orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+            },
+          },
+        })
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+  const replies = ticket.replies.map(({ body, createdAt, author }) => ({ body, createdAt, authorName: author.name }))
+  try {
+    res.json({ summary: await summarizeTicket(ticket, replies) })
+  } catch (err) {
+    console.error(err)
+    res.status(502).json({ error: aiErrorMessage(err, 'AI summaries are unavailable right now. Try again later.') })
   }
 })
 

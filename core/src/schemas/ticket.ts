@@ -129,6 +129,11 @@ export const polishReplySchema = createReplySchema
 
 export type PolishReplyInput = z.infer<typeof polishReplySchema>
 
+// Response of POST /api/tickets/:id/summary: an AI summary of the ticket and its replies (plain text)
+export interface TicketSummary {
+  summary: string
+}
+
 // A reply as returned by GET /api/tickets/:id/replies (oldest first) and POST /api/tickets/:id/replies
 export interface TicketReply {
   id: number

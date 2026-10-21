@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import ReplyForm from '@/components/ReplyForm'
 import ReplyThread from '@/components/ReplyThread'
 import TicketDetail from '@/components/TicketDetail'
+import TicketSummary from '@/components/TicketSummary'
 import UpdateTicket from '@/components/UpdateTicket'
 import { useTicket } from '@/hooks/useTicket'
 
@@ -38,6 +39,7 @@ export default function TicketDetailPage() {
           <div className="mt-6 grid gap-8 md:grid-cols-[1fr_11rem]">
             <div className="min-w-0 space-y-6">
               <TicketDetail ticket={ticket} />
+              <TicketSummary ticketId={id} />
               <section aria-labelledby="replies-heading" className="space-y-4">
                 <h2 id="replies-heading" className="text-xl font-semibold">
                   Replies

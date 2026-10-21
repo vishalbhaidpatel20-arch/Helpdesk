@@ -1,5 +1,4 @@
-import { google } from '@ai-sdk/google'
-import { generateText } from 'ai'
+import { generateWithFallback } from './generateWithFallback'
 
 const instructions = `You polish replies that a customer support agent is about to send to a customer.
 Improve clarity, grammar, tone (professional, warm, concise) and structure while keeping the agent's meaning, facts and commitments unchanged. Do not invent information, links, names or promises.
@@ -10,8 +9,7 @@ Output only the improved reply text, as plain text with no preamble, quotes or m
 const SIGNATURE_LINK = 'https://github.com/vishalbhaidpatel20-arch'
 
 export async function polishReply(ticket: { subject: string; body: string; senderName: string }, draft: string, agentName: string) {
-  const { text } = await generateText({
-    model: google('gemini-3.8-flash'),
+  const text = await generateWithFallback({
     instructions,
     prompt: `<ticket_subject>\n${ticket.subject}\n</ticket_subject>\n\n<customer_email>\n${ticket.body}\n</customer_email>\n\n<agent_draft>\n${draft}\n</agent_draft>`,
   })
@@ -19,7 +17,7 @@ export async function polishReply(ticket: { subject: string; body: string; sende
   const customer = ticket.senderName.trim().split(/\s+/)[0]
   return `Hi ${customer},
 
-${text.trim()}
+${text}
 
 Best regards,
 ${agentName}
