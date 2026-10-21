@@ -1,4 +1,6 @@
 import axios from 'axios'
+import DeleteUserDialog from '@/components/DeleteUserDialog'
+import EditUserDialog from '@/components/EditUserDialog'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -32,6 +34,9 @@ export default function UsersTable() {
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Created</TableHead>
+          <TableHead className="w-24">
+            <span className="sr-only">Actions</span>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -50,11 +55,14 @@ export default function UsersTable() {
               <TableCell>
                 <Skeleton className="h-4 w-20" />
               </TableCell>
+              <TableCell>
+                <Skeleton className="size-8" />
+              </TableCell>
             </TableRow>
           ))
         ) : users.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={4} className="text-center text-muted-foreground">
+            <TableCell colSpan={5} className="text-center text-muted-foreground">
               No users found
             </TableCell>
           </TableRow>
@@ -69,6 +77,13 @@ export default function UsersTable() {
                 </Badge>
               </TableCell>
               <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+              <TableCell>
+                <div className="flex justify-start">
+                  <EditUserDialog user={user} />
+                  {/* Admins cannot be deleted */}
+                  {user.role !== Role.ADMIN && <DeleteUserDialog user={user} />}
+                </div>
+              </TableCell>
             </TableRow>
           ))
         )}

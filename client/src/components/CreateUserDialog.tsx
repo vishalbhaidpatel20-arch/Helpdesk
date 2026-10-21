@@ -1,6 +1,6 @@
 import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
-import CreateUserForm from '@/components/CreateUserForm'
+import UserForm from '@/components/UserForm'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,7 +28,7 @@ export default function CreateUserDialog() {
           <DialogTitle>New user</DialogTitle>
           <DialogDescription>Create an agent account.</DialogDescription>
         </DialogHeader>
-        <CreateUserForm onSuccess={() => setOpen(false)} />
+        <UserForm onSuccess={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   )

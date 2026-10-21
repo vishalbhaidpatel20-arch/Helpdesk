@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import type { UpdateUserInput } from '@helpdesk/core'
 import type { Role } from '@/lib/roles'
 
 export type User = {
@@ -28,6 +29,29 @@ export function useCreateUser() {
     mutationFn: async (values: NewUser) => {
       const { data } = await api.post<{ user: User }>('/users', values)
       return data.user
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+
+export type UserChanges = UpdateUserInput & { id: string }
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...values }: UserChanges) => {
+      const { data } = await api.patch<{ user: User }>(`/users/${id}`, values)
+      return data.user
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/users/${id}`)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   })

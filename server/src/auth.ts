@@ -21,6 +21,20 @@ export const auth = betterAuth({
   rateLimit: { enabled: process.env.NODE_ENV === 'production' },
   advanced: { useSecureCookies: process.env.NODE_ENV === 'production' },
   trustedOrigins: [clientUrl],
+  databaseHooks: {
+    session: {
+      create: {
+        // Soft-deleted users cannot sign in: returning false aborts creating the session
+        before: async (session) => {
+          const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { deletedAt: true },
+          })
+          if (user?.deletedAt) return false
+        },
+      },
+    },
+  },
   user: {
     additionalFields: {
       role: { type: 'string', defaultValue: Role.AGENT, input: false },

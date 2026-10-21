@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import { renderWithQuery } from '@/test/renderWithQuery'
 import CreateUserDialog from './CreateUserDialog'
 
-vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), post: vi.fn() } }))
+vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }))
 
 const post = vi.mocked(api.post)
 

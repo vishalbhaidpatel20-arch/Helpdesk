@@ -2,16 +2,18 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { AxiosError, type AxiosResponse } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
+import { Role } from '@/lib/roles'
 import { renderWithQuery } from '@/test/renderWithQuery'
-import CreateUserForm from './CreateUserForm'
+import UserForm from './UserForm'
 
-vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), post: vi.fn() } }))
+vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }))
 
 const post = vi.mocked(api.post)
+const patch = vi.mocked(api.patch)
 const onSuccess = vi.fn()
 
 function renderForm() {
-  return renderWithQuery(<CreateUserForm onSuccess={onSuccess} />)
+  return renderWithQuery(<UserForm onSuccess={onSuccess} />)
 }
 
 function fill({ name = 'Alice', email = 'alice@example.com', password = 'password' } = {}) {
@@ -31,9 +33,10 @@ function httpError(status: number, data?: unknown) {
   } as AxiosResponse)
 }
 
-describe('CreateUserForm', () => {
+describe('UserForm', () => {
   beforeEach(() => {
     post.mockReset()
+    patch.mockReset()
     onSuccess.mockReset()
   })
 
@@ -190,6 +193,96 @@ describe('CreateUserForm', () => {
       expect(screen.getByLabelText('Name')).toHaveValue('Alice')
       expect(screen.getByLabelText('Email')).toHaveValue('alice@example.com')
       expect(screen.getByRole('button', { name: 'Create user' })).toBeEnabled()
+    })
+  })
+
+  describe('editing an existing user', () => {
+    const user = {
+      id: 'u1',
+      name: 'Sam Agent',
+      email: 'sam@example.com',
+      role: Role.AGENT,
+      createdAt: '2026-05-06T10:00:00.000Z',
+    }
+
+    function renderEditForm() {
+      return renderWithQuery(<UserForm user={user} onSuccess={onSuccess} />)
+    }
+
+    it('populates name and email from the user and leaves the password empty', () => {
+      renderEditForm()
+
+      expect(screen.getByLabelText('Name')).toHaveValue('Sam Agent')
+      expect(screen.getByLabelText('Email')).toHaveValue('sam@example.com')
+      expect(screen.getByLabelText('Password')).toHaveValue('')
+      expect(screen.getByText('Leave blank to keep the current password.')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
+    })
+
+    it('saves without a password when it is left blank', async () => {
+      patch.mockResolvedValue({ data: { user } })
+      renderEditForm()
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Samuel Agent' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+      expect(patch).toHaveBeenCalledTimes(1)
+      const [url, body] = patch.mock.calls[0] as [string, { name: string; email: string; password?: string }]
+      expect(url).toBe('/users/u1')
+      expect(body).toMatchObject({ name: 'Samuel Agent', email: 'sam@example.com' })
+      expect(body.password ?? '').toBe('')
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('sends the new password when one is provided', async () => {
+      patch.mockResolvedValue({ data: { user } })
+      renderEditForm()
+      fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'newpass1' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled())
+      expect(patch).toHaveBeenCalledWith('/users/u1', {
+        name: 'Sam Agent',
+        email: 'sam@example.com',
+        password: 'newpass1',
+      })
+    })
+
+    it('rejects a provided password that is not 8 characters', async () => {
+      renderEditForm()
+      fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'short' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      expect(await screen.findByText('Password must be exactly 8 characters')).toBeInTheDocument()
+      expect(patch).not.toHaveBeenCalled()
+    })
+
+    it('still validates the name and email', async () => {
+      renderEditForm()
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Al' } })
+      fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nope' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      expect(await screen.findByText('Name must be at least 3 characters')).toBeInTheDocument()
+      expect(screen.getByText('Enter a valid email address')).toBeInTheDocument()
+      expect(patch).not.toHaveBeenCalled()
+    })
+
+    it('shows the server error and does not call onSuccess', async () => {
+      patch.mockRejectedValue(httpError(409, { error: 'A user with this email already exists' }))
+      renderEditForm()
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('A user with this email already exists')
+      expect(onSuccess).not.toHaveBeenCalled()
+    })
+
+    it('shows a generic message when the update fails without details', async () => {
+      patch.mockRejectedValue(httpError(500))
+      renderEditForm()
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Failed to update user')
     })
   })
 })

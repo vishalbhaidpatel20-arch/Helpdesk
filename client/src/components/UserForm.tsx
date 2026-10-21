@@ -1,30 +1,41 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
 import { useForm } from 'react-hook-form'
-import { createUserSchema, type CreateUserInput } from '@helpdesk/core'
+import { createUserSchema, updateUserSchema, type UpdateUserInput } from '@helpdesk/core'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useCreateUser } from '@/hooks/useUsers'
+import { useCreateUser, useUpdateUser, type User } from '@/hooks/useUsers'
 
-export default function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
+// Creates a user, or edits `user` when given. When editing, an empty password leaves the password unchanged.
+export default function UserForm({ user, onSuccess }: { user?: User; onSuccess: () => void }) {
   const createUser = useCreateUser()
+  const updateUser = useUpdateUser()
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<CreateUserInput>({ resolver: zodResolver(createUserSchema) })
+  } = useForm<UpdateUserInput>({
+    resolver: zodResolver(user ? updateUserSchema : createUserSchema),
+    defaultValues: { name: user?.name ?? '', email: user?.email ?? '', password: '' },
+  })
 
-  async function onSubmit(values: CreateUserInput) {
+  async function onSubmit(values: UpdateUserInput) {
     try {
-      await createUser.mutateAsync(values)
+      if (user) {
+        await updateUser.mutateAsync({ id: user.id, ...values })
+      } else {
+        await createUser.mutateAsync({ ...values, password: values.password ?? '' })
+      }
       onSuccess()
     } catch (err) {
       const message =
         axios.isAxiosError(err) && typeof err.response?.data?.error === 'string'
           ? err.response.data.error
-          : 'Failed to create user'
+          : user
+            ? 'Failed to update user'
+            : 'Failed to create user'
       setError('root', { message })
     }
   }
@@ -64,11 +75,14 @@ export default function CreateUserForm({ onSuccess }: { onSuccess: () => void })
           aria-invalid={!!errors.password}
           {...register('password')}
         />
+        {user && !errors.password && (
+          <p className="text-sm text-muted-foreground">Leave blank to keep the current password.</p>
+        )}
         {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
       </div>
 
       <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? 'Creating...' : 'Create user'}
+        {isSubmitting ? (user ? 'Saving...' : 'Creating...') : user ? 'Save changes' : 'Create user'}
       </Button>
     </form>
   )
