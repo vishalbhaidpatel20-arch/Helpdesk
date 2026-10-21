@@ -35,6 +35,29 @@ export const inboundEmailSchema = z.object({
 
 export type InboundEmailInput = z.infer<typeof inboundEmailSchema>
 
+// Query string of GET /api/tickets (also used by the client to read/write the page's URL)
+export const TICKET_SORT_FIELDS = ['createdAt', 'subject', 'status'] as const
+export type TicketSortField = (typeof TICKET_SORT_FIELDS)[number]
+export const DEFAULT_TICKET_PAGE_SIZE = 20
+export const MAX_TICKET_PAGE_SIZE = 100
+
+export const ticketListQuerySchema = z.object({
+  status: z.enum(TicketStatus, { error: 'Invalid status' }).optional(),
+  category: z.enum(TicketCategory, { error: 'Invalid category' }).optional(),
+  // Newest first by default
+  sort: z.enum(TICKET_SORT_FIELDS, { error: 'Invalid sort field' }).default('createdAt'),
+  order: z.enum(['asc', 'desc'], { error: 'Order must be asc or desc' }).default('desc'),
+  page: z.coerce.number({ error: 'Page must be a number' }).int().min(1, 'Page must be at least 1').default(1),
+  pageSize: z.coerce
+    .number({ error: 'Page size must be a number' })
+    .int()
+    .min(1, 'Page size must be at least 1')
+    .max(MAX_TICKET_PAGE_SIZE, `Page size must be at most ${MAX_TICKET_PAGE_SIZE}`)
+    .default(DEFAULT_TICKET_PAGE_SIZE),
+})
+
+export type TicketListQuery = z.infer<typeof ticketListQuerySchema>
+
 // A ticket as returned by GET /api/tickets
 export type Ticket = {
   id: number
@@ -44,4 +67,12 @@ export type Ticket = {
   status: TicketStatus
   category: TicketCategory | null
   createdAt: string
+}
+
+// Response of GET /api/tickets: one page of tickets plus the total matching the filters
+export type TicketListResponse = {
+  tickets: Ticket[]
+  total: number
+  page: number
+  pageSize: number
 }

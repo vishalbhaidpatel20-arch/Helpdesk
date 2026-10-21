@@ -1,4 +1,5 @@
-import { TicketStatus } from '@helpdesk/core'
+import { TicketStatus, type Ticket, type TicketListQuery, type TicketSortField } from '@helpdesk/core'
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -9,29 +10,48 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useTickets } from '@/hooks/useTickets'
+import { categoryLabels, statusLabels } from '@/lib/tickets'
 
-const statusLabels: Record<TicketStatus, string> = {
-  [TicketStatus.OPEN]: 'Open',
-  [TicketStatus.RESOLVED]: 'Resolved',
-  [TicketStatus.CLOSED]: 'Closed',
+type Props = {
+  // undefined while the first page loads
+  tickets: Ticket[] | undefined
+  params: Pick<TicketListQuery, 'sort' | 'order'>
+  onSort: (field: TicketSortField) => void
 }
 
-export default function TicketsTable() {
-  const { data: tickets, error } = useTickets()
+function SortableHead({
+  field,
+  label,
+  params,
+  onSort,
+}: { field: TicketSortField; label: string } & Omit<Props, 'tickets'>) {
+  const active = params.sort === field
+  const Icon = active ? (params.order === 'asc' ? ArrowUpIcon : ArrowDownIcon) : ArrowUpDownIcon
 
-  return error ? (
-    <p role="alert" className="mt-4 text-sm text-destructive">
-      Failed to load tickets
-    </p>
-  ) : (
-    <Table className="mt-6" aria-busy={tickets === undefined}>
+  return (
+    <TableHead aria-sort={active ? (params.order === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        className="inline-flex items-center gap-1 rounded-sm font-medium hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        {label}
+        <Icon className="size-3.5" aria-hidden />
+      </button>
+    </TableHead>
+  )
+}
+
+export default function TicketsTable({ tickets, params, onSort }: Props) {
+  return (
+    <Table className="mt-4" aria-busy={tickets === undefined}>
       <TableHeader>
         <TableRow>
-          <TableHead>Subject</TableHead>
+          <SortableHead field="subject" label="Subject" params={params} onSort={onSort} />
           <TableHead>Sender</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Received</TableHead>
+          <SortableHead field="status" label="Status" params={params} onSort={onSort} />
+          <TableHead>Category</TableHead>
+          <SortableHead field="createdAt" label="Received" params={params} onSort={onSort} />
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -48,14 +68,17 @@ export default function TicketsTable() {
                 <Skeleton className="h-5 w-16 rounded-full" />
               </TableCell>
               <TableCell>
+                <Skeleton className="h-4 w-28" />
+              </TableCell>
+              <TableCell>
                 <Skeleton className="h-4 w-20" />
               </TableCell>
             </TableRow>
           ))
         ) : tickets.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={4} className="text-center text-muted-foreground">
-              No tickets yet
+            <TableCell colSpan={5} className="text-center text-muted-foreground">
+              No tickets found
             </TableCell>
           </TableRow>
         ) : (
@@ -70,6 +93,9 @@ export default function TicketsTable() {
                 <Badge variant={ticket.status === TicketStatus.OPEN ? 'default' : 'secondary'}>
                   {statusLabels[ticket.status]}
                 </Badge>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {ticket.category ? categoryLabels[ticket.category] : '—'}
               </TableCell>
               <TableCell>{new Date(ticket.createdAt).toLocaleDateString()}</TableCell>
             </TableRow>
