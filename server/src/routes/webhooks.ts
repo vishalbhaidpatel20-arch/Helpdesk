@@ -3,6 +3,7 @@ import { inboundEmailSchema, TicketStatus } from '@helpdesk/core'
 import { Router } from 'express'
 import { prisma } from '../db'
 import { parseBody } from '../lib/parseBody'
+import { findAiAgentId } from '../lib/aiAgent'
 import { enqueueProcessTicket } from '../lib/queue'
 
 export const webhooksRouter = Router()
@@ -54,7 +55,9 @@ webhooksRouter.post('/inbound-email', async (req, res) => {
   // NEW (hidden from the list) until a pg-boss worker has classified it and tried to resolve it.
   const aiEnabled = Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY)
   const status = aiEnabled ? TicketStatus.NEW : TicketStatus.OPEN
-  const ticket = await prisma.ticket.create({ data: { ...data, status }, select: { id: true } })
+  // The AI agent (if seeded) owns the ticket while it tries to resolve it; it is unassigned if it cannot
+  const assignedToId = aiEnabled ? await findAiAgentId() : null
+  const ticket = await prisma.ticket.create({ data: { ...data, status, assignedToId }, select: { id: true } })
   if (aiEnabled) await enqueueProcessTicket(ticket.id)
   res.status(201).json({ ticket })
 })

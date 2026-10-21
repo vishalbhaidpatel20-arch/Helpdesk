@@ -27,6 +27,7 @@ export default function Layout() {
           <Link to="/" className="text-lg font-bold">
             Helpdesk
           </Link>
+          <AppLink to="/dashboard">Dashboard</AppLink>
           <AppLink to="/tickets">Tickets</AppLink>
           {session.user.role === Role.ADMIN && <AppLink to="/users">Users</AppLink>}
         </div>

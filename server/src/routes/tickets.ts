@@ -96,7 +96,8 @@ ticketsRouter.patch('/:id', requireAuth, async (req, res) => {
   if (!body) return
   const id = parseTicketId(String(req.params.id))
 
-  if (id === undefined || !(await prisma.ticket.findUnique({ where: { id } }))) {
+  const existing = id === undefined ? null : await prisma.ticket.findUnique({ where: { id } })
+  if (id === undefined || !existing) {
     res.status(404).json({ error: 'Ticket not found' })
     return
   }
@@ -110,7 +111,11 @@ ticketsRouter.patch('/:id', requireAuth, async (req, res) => {
     }
   }
 
-  const ticket = await prisma.ticket.update({ where: { id }, data: body, select: ticketSelect })
+  // resolvedAt tracks when the ticket was first resolved or closed; reopening clears it
+  let resolvedAt: Date | null | undefined
+  if (body.status === TicketStatus.OPEN) resolvedAt = null
+  else if (body.status && !existing.resolvedAt) resolvedAt = new Date()
+  const ticket = await prisma.ticket.update({ where: { id }, data: { ...body, resolvedAt }, select: ticketSelect })
   res.json(ticket)
 })
 

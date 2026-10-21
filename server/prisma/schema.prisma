@@ -108,6 +108,8 @@ model Ticket {
   assignedTo   User?           @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  // When the ticket became RESOLVED or CLOSED; null while it is open. Used for the dashboard's resolution time
+  resolvedAt   DateTime?
   replies      Reply[]
 
   @@index([status, createdAt])

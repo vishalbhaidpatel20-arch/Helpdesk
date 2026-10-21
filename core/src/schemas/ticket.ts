@@ -145,6 +145,30 @@ export interface TicketSummary {
   summary: string
 }
 
+// Days covered by the dashboard's tickets-per-day chart (today included)
+export const TICKETS_PER_DAY_DAYS = 30
+
+// Tickets created on one UTC day; `date` is YYYY-MM-DD
+export interface TicketsPerDay {
+  date: string
+  count: number
+}
+
+// Response of GET /api/stats: the dashboard numbers
+export interface TicketStats {
+  total: number
+  // Tickets with status OPEN
+  open: number
+  // Resolved or closed tickets whose resolution is an AI reply (see the auto-resolve step)
+  resolvedByAi: number
+  // resolvedByAi as a percentage of all tickets, one decimal (0 when there are no tickets)
+  resolvedByAiPercent: number
+  // Mean seconds from creation to resolution over resolved/closed tickets; null when none
+  averageResolutionSeconds: number | null
+  // Oldest first, one entry per day for the last TICKETS_PER_DAY_DAYS days (zero on days without tickets)
+  ticketsPerDay: TicketsPerDay[]
+}
+
 // A reply as returned by GET /api/tickets/:id/replies (oldest first) and POST /api/tickets/:id/replies
 export interface TicketReply {
   id: number

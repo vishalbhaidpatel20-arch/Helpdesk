@@ -19,3 +19,16 @@ export const categoryLabels: Record<TicketCategory, string> = {
   [TicketCategory.TECHNICAL_QUESTION]: 'Technical Question',
   [TicketCategory.REFUND_REQUEST]: 'Refund Request',
 }
+
+// A length of time as its two largest units, e.g. "2d 3h", "4h 12m", "35s" (fixed format, not locale dependent)
+export function formatDuration(totalSeconds: number) {
+  const seconds = Math.round(totalSeconds)
+  const units = [
+    ['d', Math.floor(seconds / 86_400)],
+    ['h', Math.floor((seconds % 86_400) / 3_600)],
+    ['m', Math.floor((seconds % 3_600) / 60)],
+    ['s', seconds % 60],
+  ] as const
+  const parts = units.filter(([, value]) => value > 0).slice(0, 2)
+  return parts.length ? parts.map(([unit, value]) => `${value}${unit}`).join(' ') : '0s'
+}

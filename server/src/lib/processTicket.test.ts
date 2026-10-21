@@ -10,7 +10,7 @@ const updateMany = mock(async (_args: UpdateArgs) => ({ count: 1 }))
 const replyCreate = mock(async (_args: unknown) => ({}))
 const tx = { ticket: { updateMany }, reply: { create: replyCreate } }
 mock.module('../db', () => ({
-  prisma: { ticket: { findUnique, updateMany }, $transaction: async (fn: (t: typeof tx) => Promise<void>) => fn(tx) },
+  prisma: { ticket: { findUnique, updateMany }, user: { findFirst: async () => ({ id: 'ai-1' }) }, $transaction: async (fn: (t: typeof tx) => Promise<void>) => fn(tx) },
 }))
 const loadKnowledgeBase = mock(async (): Promise<string | null> => 'KB')
 mock.module('./knowledgeBase', () => ({ loadKnowledgeBase }))
