@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { AxiosError, type AxiosResponse } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
@@ -165,6 +165,55 @@ describe('UsersPage', () => {
       await screen.findByRole('alert')
       expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(0)
       expect(screen.queryByText('No users found')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('new user dialog', () => {
+    async function openDialog() {
+      get.mockResolvedValue({ data: { users: [admin] } })
+      renderPage()
+      fireEvent.click(screen.getByRole('button', { name: 'New user' }))
+      return screen.findByRole('dialog')
+    }
+
+    it('is hidden until the new user button is clicked', async () => {
+      get.mockResolvedValue({ data: { users: [admin] } })
+      renderPage()
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'New user' }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(within(dialog).getByLabelText('Name')).toBeInTheDocument()
+      expect(within(dialog).getByLabelText('Email')).toBeInTheDocument()
+      expect(within(dialog).getByLabelText('Password')).toBeInTheDocument()
+    })
+
+    it('hides when Escape is pressed', async () => {
+      const dialog = await openDialog()
+
+      fireEvent.keyDown(dialog, { key: 'Escape' })
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('hides when clicking outside the dialog', async () => {
+      await openDialog()
+      const overlay = document.querySelector('[data-slot="dialog-overlay"]')!
+
+      fireEvent.pointerDown(overlay)
+      fireEvent.pointerUp(overlay)
+      fireEvent.click(overlay)
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('stays open when clicking inside the dialog', async () => {
+      const dialog = await openDialog()
+
+      fireEvent.pointerDown(within(dialog).getByLabelText('Name'))
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
   })
 })

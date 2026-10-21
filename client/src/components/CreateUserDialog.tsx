@@ -1,3 +1,4 @@
+import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import CreateUserForm from '@/components/CreateUserForm'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,10 @@ export default function CreateUserDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>New user</Button>
+        <Button>
+          <PlusIcon />
+          New user
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

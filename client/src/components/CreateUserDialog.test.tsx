@@ -41,13 +41,20 @@ describe('CreateUserDialog', () => {
     await openDialog()
     fill('Al', 'al@example.com', 'short')
     expect(await screen.findByText('Name must be at least 3 characters')).toBeInTheDocument()
-    expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument()
+    expect(screen.getByText('Password must be exactly 8 characters')).toBeInTheDocument()
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('rejects a password longer than 8 characters', async () => {
+    await openDialog()
+    fill('Alice', 'alice@example.com', 'password1')
+    expect(await screen.findByText('Password must be exactly 8 characters')).toBeInTheDocument()
     expect(post).not.toHaveBeenCalled()
   })
 
   it('rejects an invalid email', async () => {
     await openDialog()
-    fill('Alice', 'not-an-email', 'longenough')
+    fill('Alice', 'not-an-email', 'password')
     expect(await screen.findByText('Enter a valid email address')).toBeInTheDocument()
     expect(post).not.toHaveBeenCalled()
   })
@@ -55,12 +62,12 @@ describe('CreateUserDialog', () => {
   it('creates the user and closes the dialog on success', async () => {
     post.mockResolvedValue({ data: { user: { id: '3' } } })
     await openDialog()
-    fill('Alice', 'alice@example.com', 'longenough')
+    fill('Alice', 'alice@example.com', 'password')
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(post).toHaveBeenCalledWith('/users', {
       name: 'Alice',
       email: 'alice@example.com',
-      password: 'longenough',
+      password: 'password',
     })
   })
 
@@ -72,7 +79,7 @@ describe('CreateUserDialog', () => {
       } as AxiosResponse),
     )
     await openDialog()
-    fill('Alice', 'alice@example.com', 'longenough')
+    fill('Alice', 'alice@example.com', 'password')
     expect(await screen.findByRole('alert')).toHaveTextContent('A user with this email already exists')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
