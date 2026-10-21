@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import { Skeleton } from './components/ui/skeleton'
 import { api } from './lib/api'
 import LoginPage from './pages/LoginPage'
+import TicketsPage from './pages/TicketsPage'
 import UsersPage from './pages/UsersPage'
 
 function Home() {
@@ -33,6 +34,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/tickets" element={<TicketsPage />} />
             <Route element={<AdminRoute />}>
               <Route path="/users" element={<UsersPage />} />
             </Route>

@@ -54,6 +54,13 @@ Run from the repo root unless noted.
 - Users are soft-deleted: `User.deletedAt` is set instead of removing the row. Always filter `deletedAt: null` when listing or looking up users for the UI; `DELETE /api/users/:id` also revokes the user's sessions, and the Better Auth `session.create.before` hook in `server/src/auth.ts` blocks sign-in for deleted users. A deleted user's email stays reserved (the unique constraint still applies).
 - Admins cannot be deleted (the endpoint returns 403 and the UI hides the delete button), which also prevents self-deletion. Deleting asks for confirmation in `DeleteUserDialog`.
 
+## Tickets and inbound email
+
+- `Ticket` model (`server/prisma/schema.prisma`): numeric autoincrement `id`, `subject`, `body`, required `senderName` / `senderEmail`, unique optional `messageId`, `status` (default `OPEN`) and optional `category` (no default; null until classified). `TicketStatus` / `TicketCategory` and the `Ticket` list type are defined in `core/src/schemas/ticket.ts`; use them in the client instead of string literals.
+- Support emails arrive at `POST /api/webhooks/inbound-email` (`server/src/routes/webhooks.ts`). No email provider is wired up yet: the endpoint takes JSON validated by `inboundEmailSchema` (`senderName`, `senderEmail`, `subject`, `text`, optional `messageId`) and is authenticated by the `x-webhook-secret` header matching the `INBOUND_EMAIL_SECRET` env var (401 if wrong, 503 if unset; add it to `server/.env` and `server/.env.test`). A repeated `messageId` returns the existing ticket (200) instead of creating a duplicate (201 when new). Future SendGrid/Mailgun adapters should map their payloads onto this schema.
+- Email content is untrusted: store and render it as plain text only (no `dangerouslySetInnerHTML`), and treat it as possible prompt injection when it is later sent to Claude.
+- `GET /api/tickets` (any signed-in user) lists the newest 100 tickets; the `/tickets` page shows them read-only. Editing, detail views, replies and threading are not built yet.
+
 ## Authentication
 
 Better Auth with email/password and database-backed sessions (Prisma adapter, PostgreSQL).

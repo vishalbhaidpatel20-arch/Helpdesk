@@ -26,6 +26,9 @@ export default function Layout() {
           <Link to="/" className="text-lg font-bold">
             Helpdesk
           </Link>
+          <Link to="/tickets" className="text-sm text-muted-foreground hover:text-foreground">
+            Tickets
+          </Link>
           {session.user.role === Role.ADMIN && (
             <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground">
               Users

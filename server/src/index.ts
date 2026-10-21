@@ -4,7 +4,9 @@ import express from 'express'
 import type { NextFunction, Request, Response } from 'express'
 import helmet from 'helmet'
 import { auth } from './auth'
+import { ticketsRouter } from './routes/tickets'
 import { usersRouter } from './routes/users'
+import { webhooksRouter } from './routes/webhooks'
 
 const app = express()
 const port = Number(process.env.PORT ?? 3000)
@@ -22,6 +24,8 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.use('/api/users', usersRouter)
+app.use('/api/tickets', ticketsRouter)
+app.use('/api/webhooks', webhooksRouter)
 
 // Terminal error handler: log details server-side, never leak stack traces to clients
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
