@@ -53,7 +53,7 @@ Run from the repo root unless noted.
 
 ## Users
 
-- Users are soft-deleted: `User.deletedAt` is set instead of removing the row. Always filter `deletedAt: null` when listing or looking up users for the UI; `DELETE /api/users/:id` also revokes the user's sessions, and the Better Auth `session.create.before` hook in `server/src/auth.ts` blocks sign-in for deleted users. A deleted user's email stays reserved (the unique constraint still applies).
+- Users are soft-deleted: `User.deletedAt` is set instead of removing the row. Always filter `deletedAt: null` when listing or looking up users for the UI; `DELETE /api/users/:id` also revokes the user's sessions and unassigns their tickets, and the Better Auth `session.create.before` hook in `server/src/auth.ts` blocks sign-in for deleted users. A deleted user's email stays reserved (the unique constraint still applies).
 - Admins cannot be deleted (the endpoint returns 403 and the UI hides the delete button), which also prevents self-deletion. Deleting asks for confirmation in `DeleteUserDialog`.
 
 ## Tickets and inbound email

@@ -94,7 +94,7 @@ usersRouter.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
   })
 })
 
-// Admin only. Soft delete: the row is kept with deletedAt set, and the user's sessions are revoked.
+// Admin only. Soft delete: the row is kept with deletedAt set, and the user's sessions are revoked and their tickets are unassigned.
 usersRouter.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   const id = String(req.params.id)
 
@@ -111,6 +111,8 @@ usersRouter.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   await prisma.$transaction([
     prisma.user.update({ where: { id }, data: { deletedAt: new Date() } }),
     prisma.session.deleteMany({ where: { userId: id } }),
+    // The row stays (soft delete), so the foreign key's SetNull never fires: unassign their tickets here
+    prisma.ticket.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } }),
   ])
   res.status(204).end()
 })
