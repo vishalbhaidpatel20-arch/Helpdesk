@@ -1,8 +1,9 @@
-import { createReplySchema, ticketListQuerySchema, updateTicketSchema } from '@helpdesk/core'
+import { createReplySchema, polishReplySchema, ticketListQuerySchema, updateTicketSchema } from '@helpdesk/core'
 import { Router } from 'express'
 import { Role } from '../../generated/enums'
 import { prisma } from '../db'
 import { parseBody, parseQuery } from '../lib/parseBody'
+import { polishReply } from '../lib/polishReply'
 import { requireAuth, type Session } from '../middleware/auth'
 
 export const ticketsRouter = Router()
@@ -130,6 +131,32 @@ ticketsRouter.get('/:id/replies', requireAuth, async (req, res) => {
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   })
   res.json({ replies })
+})
+
+// Any signed-in user. Returns an AI-polished version of the agent's draft; nothing is saved.
+ticketsRouter.post('/:id/replies/polish', requireAuth, async (req, res) => {
+  const body = parseBody(polishReplySchema, req, res)
+  if (!body) return
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    res.status(503).json({ error: 'AI polishing is not configured' })
+    return
+  }
+  const id = parseTicketId(String(req.params.id))
+  const ticket =
+    id === undefined
+      ? null
+      : await prisma.ticket.findUnique({ where: { id }, select: { subject: true, body: true, senderName: true } })
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+  try {
+    res.json({ body: await polishReply(ticket, body.body, (res.locals.session as Session).user.name) })
+  } catch (err) {
+    // A provider failure (bad key, no credits, rate limit) is not our bug: log it and tell the agent
+    console.error(err)
+    res.status(502).json({ error: 'AI polishing is unavailable right now. Try again later.' })
+  }
 })
 
 // Any signed-in user. Adds a reply authored by the signed-in user.

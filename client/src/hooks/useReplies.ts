@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { CreateReplyInput, TicketReply } from '@helpdesk/core'
+import type { CreateReplyInput, PolishReplyInput, TicketReply } from '@helpdesk/core'
 import { api } from '@/lib/api'
 
 export function useReplies(ticketId: string | undefined) {
@@ -10,6 +10,15 @@ export function useReplies(ticketId: string | undefined) {
       return data.replies
     },
     enabled: ticketId !== undefined,
+  })
+}
+
+export function usePolishReply(ticketId: string | undefined) {
+  return useMutation({
+    mutationFn: async (values: PolishReplyInput) => {
+      const { data } = await api.post<{ body: string }>(`/tickets/${ticketId}/replies/polish`, values)
+      return data.body
+    },
   })
 }
 

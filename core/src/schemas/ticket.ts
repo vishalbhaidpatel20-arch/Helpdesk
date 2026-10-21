@@ -124,6 +124,11 @@ export const createReplySchema = z.object({
 
 export type CreateReplyInput = z.infer<typeof createReplySchema>
 
+// Body of POST /api/tickets/:id/replies/polish (the agent's draft) and its response shape
+export const polishReplySchema = createReplySchema
+
+export type PolishReplyInput = z.infer<typeof polishReplySchema>
+
 // A reply as returned by GET /api/tickets/:id/replies (oldest first) and POST /api/tickets/:id/replies
 export interface TicketReply {
   id: number

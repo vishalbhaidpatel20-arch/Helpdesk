@@ -37,10 +37,10 @@ describe('ReplyForm', () => {
     post.mockReset()
   })
 
-  it('renders an empty textarea and a send button', () => {
+  it('renders an empty textarea and a disabled send button', () => {
     renderWithQuery(<ReplyForm ticketId="7" />)
     expect(screen.getByLabelText('Reply')).toHaveValue('')
-    expect(screen.getByRole('button', { name: 'Send reply' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Send reply' })).toBeDisabled()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -69,16 +69,27 @@ describe('ReplyForm', () => {
 
   it.each([
     ['empty', ''],
-    ['whitespace-only', '   \n  '],
-  ])('shows a validation error and does not post a %s reply', async (_name, text) => {
+    ['whitespace-only', '   
+  '],
+  ])('keeps the send button disabled for a %s reply', (_name, text) => {
     renderWithQuery(<ReplyForm ticketId="7" />)
 
     type(text)
-    send()
 
-    expect(await screen.findByText('Reply is required')).toBeInTheDocument()
-    expect(screen.getByLabelText('Reply')).toBeInvalid()
+    expect(screen.getByRole('button', { name: 'Send reply' })).toBeDisabled()
+    send()
     expect(post).not.toHaveBeenCalled()
+    expect(screen.queryByText('Reply is required')).not.toBeInTheDocument()
+  })
+
+  it('enables the send button once there is text and disables it again when cleared', () => {
+    renderWithQuery(<ReplyForm ticketId="7" />)
+
+    type('Hello')
+    expect(screen.getByRole('button', { name: 'Send reply' })).toBeEnabled()
+
+    type('')
+    expect(screen.getByRole('button', { name: 'Send reply' })).toBeDisabled()
   })
 
   it('rejects a reply over the length limit', async () => {
@@ -126,5 +137,66 @@ describe('ReplyForm', () => {
 
     await waitFor(() => expect(post).toHaveBeenCalledTimes(2))
     await waitFor(() => expect(screen.getByLabelText('Reply')).toHaveValue(''))
+  })
+
+  describe('polish', () => {
+    function polish() {
+      fireEvent.click(screen.getByRole('button', { name: 'Polish' }))
+    }
+
+    it('posts the draft to the polish endpoint and replaces it with the result without sending', async () => {
+      post.mockResolvedValue({ data: { body: 'Hello, thanks for reaching out.' } })
+      renderWithQuery(<ReplyForm ticketId="7" />)
+
+      type('  hi thx  ')
+      polish()
+
+      await waitFor(() =>
+        expect(screen.getByLabelText('Reply')).toHaveValue('Hello, thanks for reaching out.'),
+      )
+      expect(post).toHaveBeenCalledTimes(1)
+      expect(post).toHaveBeenCalledWith('/tickets/7/replies/polish', { body: 'hi thx' })
+    })
+
+    it('disables both buttons and shows progress while polishing', async () => {
+      post.mockReturnValue(new Promise(() => {}))
+      renderWithQuery(<ReplyForm ticketId="7" />)
+
+      type('hi')
+      polish()
+
+      expect(await screen.findByRole('button', { name: 'Polishing...' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Send reply' })).toBeDisabled()
+    })
+
+    it('shows a validation error and does not call the API for an empty draft', async () => {
+      renderWithQuery(<ReplyForm ticketId="7" />)
+
+      polish()
+
+      expect(await screen.findByText('Reply is required')).toBeInTheDocument()
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('shows the server error and keeps the draft when polishing fails', async () => {
+      post.mockRejectedValue(httpError(503, 'AI polishing is not configured'))
+      renderWithQuery(<ReplyForm ticketId="7" />)
+
+      type('hi')
+      polish()
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('AI polishing is not configured')
+      expect(screen.getByLabelText('Reply')).toHaveValue('hi')
+    })
+
+    it('shows a generic error when the failure has no message', async () => {
+      post.mockRejectedValue(httpError(500))
+      renderWithQuery(<ReplyForm ticketId="7" />)
+
+      type('hi')
+      polish()
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Failed to polish reply')
+    })
   })
 })
