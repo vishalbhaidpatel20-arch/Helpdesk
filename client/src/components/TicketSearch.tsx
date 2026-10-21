@@ -1,4 +1,5 @@
 import { MAX_TICKET_SEARCH_LENGTH } from '@helpdesk/core'
+import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 
@@ -31,14 +32,17 @@ export default function TicketSearch({ value, onChange }: Props) {
   }, [text, value, onChange])
 
   return (
-    <Input
-      type="search"
-      aria-label="Search tickets"
-      placeholder="Search subject, sender or message…"
-      maxLength={MAX_TICKET_SEARCH_LENGTH}
-      value={text}
-      onChange={(e) => setText(e.target.value)}
-      className="w-full sm:w-72"
-    />
+    <div className="relative w-full sm:w-80">
+      <Search aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        type="search"
+        aria-label="Search tickets"
+        placeholder="Search tickets by subject, sender or message…"
+        maxLength={MAX_TICKET_SEARCH_LENGTH}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        className="w-full pl-8"
+      />
+    </div>
   )
 }
