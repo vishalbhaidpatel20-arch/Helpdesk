@@ -10,9 +10,25 @@ export const ticketsRouter = Router()
 ticketsRouter.get('/', requireAuth, async (req, res) => {
   const query = parseQuery(ticketListQuerySchema, req, res)
   if (!query) return
-  const { status, category, sort, order, page, pageSize } = query
+  const { status, category, search, sort, order, page, pageSize } = query
 
-  const where = { status, category }
+  // Case-insensitive substring match on the text fields. Prisma does not escape the LIKE wildcards
+  // (% and _) or the escape character itself, so do it here to match them literally.
+  const contains = search
+    ? { contains: search.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' as const }
+    : undefined
+  const where = {
+    status,
+    category,
+    ...(contains && {
+      OR: [
+        { subject: contains },
+        { senderName: contains },
+        { senderEmail: contains },
+        { body: contains },
+      ],
+    }),
+  }
   const [tickets, total] = await prisma.$transaction([
     prisma.ticket.findMany({
       where,

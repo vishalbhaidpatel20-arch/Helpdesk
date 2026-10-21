@@ -8,15 +8,19 @@ function uniqueSuffix() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-async function postTicket(request: APIRequestContext, subject: string) {
+async function postTicket(
+  request: APIRequestContext,
+  subject: string,
+  overrides: { senderName?: string; senderEmail?: string; text?: string } = {},
+) {
   const suffix = uniqueSuffix()
   const res = await request.post(WEBHOOK_URL, {
     headers: { 'x-webhook-secret': SECRET },
     data: {
-      senderName: `Sender ${suffix}`,
-      senderEmail: `sender-${suffix}@example.com`,
+      senderName: overrides.senderName ?? `Sender ${suffix}`,
+      senderEmail: overrides.senderEmail ?? `sender-${suffix}@example.com`,
       subject,
-      text: 'Ticket list test message.',
+      text: overrides.text ?? 'Ticket list test message.',
       messageId: `<msg-${suffix}@mail.example.com>`,
     },
   })
@@ -78,5 +82,41 @@ test.describe('ticket list', () => {
     await expect(nav.getByText(`Page ${pageCount} of ${pageCount}`)).toBeVisible()
     await expect(nav.getByRole('button', { name: 'Next' })).toBeDisabled()
     await expect(nav.getByRole('button', { name: 'Previous' })).toBeEnabled()
+  })
+
+  test('searches subject, message text and sender email case-insensitively, treating % literally', async ({
+    request,
+    agentPage,
+  }) => {
+    const tok = uniqueSuffix()
+    await postTicket(request, `Search A ${tok}`, { text: `Please find needle-${tok} in this message.` })
+    await postTicket(request, `Search B ${tok}`, { senderEmail: `findme-${tok}@example.com` })
+
+    await agentPage.goto('/tickets')
+    const search = agentPage.getByRole('textbox', { name: 'Search tickets' })
+    const rowA = rowsWith(agentPage, `Search A ${tok}`)
+    const rowB = rowsWith(agentPage, `Search B ${tok}`)
+
+    // Subject, case-insensitive
+    await search.fill(`search a ${tok}`)
+    await expect(agentPage).toHaveURL(/search=/)
+    await expect(rowA).toHaveCount(1)
+    await expect(rowB).toHaveCount(0)
+
+    // Message text only
+    await search.fill(`needle-${tok}`)
+    await expect(rowA).toHaveCount(1)
+    await expect(rowB).toHaveCount(0)
+
+    // Sender email only
+    await search.fill(`findme-${tok}`)
+    await expect(rowB).toHaveCount(1)
+    await expect(rowA).toHaveCount(0)
+
+    // % is literal, not a wildcard
+    await search.fill(`${tok}%`)
+    await expect(agentPage.getByText('No tickets found')).toBeVisible()
+    await expect(rowA).toHaveCount(0)
+    await expect(rowB).toHaveCount(0)
   })
 })

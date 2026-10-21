@@ -359,6 +359,115 @@ describe('TicketsPage', () => {
     })
   })
 
+  describe('search', () => {
+    const searchBox = () => screen.getByRole('searchbox', { name: 'Search tickets' })
+
+    it('starts empty and sends no search', async () => {
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage()
+
+      await screen.findByText('Refund please')
+      expect(searchBox()).toHaveValue('')
+      expect(lastParams().search).toBeUndefined()
+    })
+
+    it('searches after the user pauses typing, writes it to the URL and goes back to page 1', async () => {
+      get.mockResolvedValue(listResponse([newest], { total: 45, page: 2 }))
+      renderPage('/tickets?page=2')
+      await screen.findByText('Refund please')
+
+      fireEvent.change(searchBox(), { target: { value: 'refund' } })
+
+      await waitFor(() => expect(lastParams()).toMatchObject({ search: 'refund', page: 1 }))
+      expect(urlParams().get('search')).toBe('refund')
+      expect(urlParams().get('page')).toBe('1')
+    })
+
+    it('does not call the API for every keystroke', async () => {
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage()
+      await screen.findByText('Refund please')
+      const callsBefore = get.mock.calls.length
+
+      for (const value of ['r', 're', 'ref', 'refu']) {
+        fireEvent.change(searchBox(), { target: { value } })
+      }
+
+      await waitFor(() => expect(lastParams().search).toBe('refu'))
+      const searched = get.mock.calls.slice(callsBefore).filter(([, config]) => (config as { params: { search?: string } }).params.search)
+      expect(searched.map(([, config]) => (config as { params: { search: string } }).params.search)).toEqual(['refu'])
+    })
+
+    it('shows the empty state when nothing matches', async () => {
+      get.mockImplementation(async (_url, config) => {
+        const { search } = (config as { params: { search?: string } }).params
+        return search === 'zzz' ? listResponse([]) : listResponse([newest])
+      })
+      renderPage()
+      await screen.findByText('Refund please')
+
+      fireEvent.change(searchBox(), { target: { value: 'zzz' } })
+
+      expect(await screen.findByText('No tickets found')).toBeInTheDocument()
+    })
+
+    it('trims the search and treats blank text as no search', async () => {
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage()
+      await screen.findByText('Refund please')
+
+      fireEvent.change(searchBox(), { target: { value: '  jo  ' } })
+      await waitFor(() => expect(lastParams().search).toBe('jo'))
+
+      fireEvent.change(searchBox(), { target: { value: '   ' } })
+      await waitFor(() => expect(lastParams().search).toBeUndefined())
+      expect(urlParams().has('search')).toBe(false)
+    })
+
+    it('clears the search from the URL when the box is emptied', async () => {
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage('/tickets?search=refund')
+      await screen.findByText('Refund please')
+
+      fireEvent.change(searchBox(), { target: { value: '' } })
+
+      await waitFor(() => expect(urlParams().has('search')).toBe(false))
+      expect(lastParams().search).toBeUndefined()
+    })
+
+    it('restores the search from the URL, as after a reload', async () => {
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage('/tickets?search=refund')
+
+      await screen.findByText('Refund please')
+      expect(searchBox()).toHaveValue('refund')
+      expect(lastParams()).toMatchObject({ search: 'refund' })
+    })
+
+    it('keeps the status filter and sort while searching', async () => {
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage('/tickets?status=OPEN&sort=subject&order=asc')
+      await screen.findByText('Refund please')
+
+      fireEvent.change(searchBox(), { target: { value: 'refund' } })
+
+      await waitFor(() =>
+        expect(lastParams()).toMatchObject({ search: 'refund', status: 'OPEN', sort: 'subject', order: 'asc' }),
+      )
+    })
+
+    it('keeps a trailing space while the user is still typing a longer phrase', async () => {
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage()
+      await screen.findByText('Refund please')
+
+      fireEvent.change(searchBox(), { target: { value: 'login ' } })
+      await waitFor(() => expect(lastParams().search).toBe('login'))
+
+      expect(searchBox()).toHaveValue('login ')
+    })
+  })
+
   describe('pagination', () => {
     it('shows the total and the current page', async () => {
       get.mockResolvedValue(listResponse([newest], { total: 45 }))

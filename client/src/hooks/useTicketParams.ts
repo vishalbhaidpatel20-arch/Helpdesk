@@ -15,6 +15,7 @@ export function useTicketParams() {
     const search = new URLSearchParams()
     if (next.status) search.set('status', next.status)
     if (next.category) search.set('category', next.category)
+    if (next.search) search.set('search', next.search)
     search.set('sort', next.sort)
     search.set('order', next.order)
     search.set('page', String(next.page))

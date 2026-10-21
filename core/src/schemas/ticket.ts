@@ -40,10 +40,18 @@ export const TICKET_SORT_FIELDS = ['createdAt', 'subject', 'status'] as const
 export type TicketSortField = (typeof TICKET_SORT_FIELDS)[number]
 export const DEFAULT_TICKET_PAGE_SIZE = 20
 export const MAX_TICKET_PAGE_SIZE = 100
+export const MAX_TICKET_SEARCH_LENGTH = 200
 
 export const ticketListQuerySchema = z.object({
   status: z.enum(TicketStatus, { error: 'Invalid status' }).optional(),
   category: z.enum(TicketCategory, { error: 'Invalid category' }).optional(),
+  // Matches subject, sender name, sender email and message text; blank means no search
+  search: z
+    .string()
+    .trim()
+    .max(MAX_TICKET_SEARCH_LENGTH, `Search must be at most ${MAX_TICKET_SEARCH_LENGTH} characters`)
+    .transform((search) => search || undefined)
+    .optional(),
   // Newest first by default
   sort: z.enum(TICKET_SORT_FIELDS, { error: 'Invalid sort field' }).default('createdAt'),
   order: z.enum(['asc', 'desc'], { error: 'Order must be asc or desc' }).default('desc'),

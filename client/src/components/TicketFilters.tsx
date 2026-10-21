@@ -1,4 +1,5 @@
 import { TicketCategory, TicketStatus, type TicketListQuery } from '@helpdesk/core'
+import TicketSearch from '@/components/TicketSearch'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/native-select'
 import { categoryLabels, statusLabels } from '@/lib/tickets'
@@ -11,6 +12,7 @@ type Props = {
 export default function TicketFilters({ params, onChange }: Props) {
   return (
     <div className="mt-6 flex flex-wrap items-center gap-4">
+      <TicketSearch value={params.search} onChange={(search) => onChange({ search })} />
       <div className="flex items-center gap-2">
         <Label htmlFor="ticket-status">Status</Label>
         <NativeSelect
