@@ -1,4 +1,4 @@
-import { assignTicketSchema, ticketListQuerySchema } from '@helpdesk/core'
+import { ticketListQuerySchema, updateTicketSchema } from '@helpdesk/core'
 import { Router } from 'express'
 import { Role } from '../../generated/enums'
 import { prisma } from '../db'
@@ -93,9 +93,10 @@ ticketsRouter.get('/:id', requireAuth, async (req, res) => {
   res.json(ticket)
 })
 
-// Any signed-in user. Assigns the ticket to an agent, or unassigns it with null.
+// Any signed-in user. Updates the status, category and/or assignee. Only the fields sent are changed;
+// null unassigns the ticket or clears its category.
 ticketsRouter.patch('/:id', requireAuth, async (req, res) => {
-  const body = parseBody(assignTicketSchema, req, res)
+  const body = parseBody(updateTicketSchema, req, res)
   if (!body) return
   const id = parseTicketId(String(req.params.id))
 
@@ -103,7 +104,7 @@ ticketsRouter.patch('/:id', requireAuth, async (req, res) => {
     res.status(404).json({ error: 'Ticket not found' })
     return
   }
-  if (body.assignedToId !== null) {
+  if (typeof body.assignedToId === 'string') {
     const agent = await prisma.user.findFirst({
       where: { id: body.assignedToId, deletedAt: null, role: Role.AGENT },
     })
@@ -113,10 +114,6 @@ ticketsRouter.patch('/:id', requireAuth, async (req, res) => {
     }
   }
 
-  const ticket = await prisma.ticket.update({
-    where: { id },
-    data: { assignedToId: body.assignedToId },
-    select: detailSelect,
-  })
+  const ticket = await prisma.ticket.update({ where: { id }, data: body, select: detailSelect })
   res.json(ticket)
 })

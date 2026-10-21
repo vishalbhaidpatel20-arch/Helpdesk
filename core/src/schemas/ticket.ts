@@ -88,12 +88,19 @@ export type TicketDetail = Ticket & {
   updatedAt: string
 }
 
-// Body of PATCH /api/tickets/:id; null unassigns the ticket
-export const assignTicketSchema = z.object({
-  assignedToId: z.string({ error: 'Agent is required' }).min(1, 'Agent is required').nullable(),
-})
+// Body of PATCH /api/tickets/:id: any of these fields, at least one. null unassigns the ticket / clears the category.
+export const updateTicketSchema = z
+  .object({
+    assignedToId: z.string({ error: 'Agent is invalid' }).min(1, 'Agent is invalid').nullable(),
+    status: z.enum(TicketStatus, { error: 'Invalid status' }),
+    category: z.enum(TicketCategory, { error: 'Invalid category' }).nullable(),
+  })
+  .partial()
+  .refine((changes) => Object.values(changes).some((value) => value !== undefined), {
+    error: 'Provide at least one field to update',
+  })
 
-export type AssignTicketInput = z.infer<typeof assignTicketSchema>
+export type UpdateTicketInput = z.infer<typeof updateTicketSchema>
 
 // Response of GET /api/tickets: one page of tickets plus the total matching the filters
 export type TicketListResponse = {

@@ -29,6 +29,12 @@ const ticket: TicketDetail = {
   updatedAt: '2026-05-07T15:30:45.000Z',
 }
 
+function optionNames(select: HTMLElement) {
+  return within(select)
+    .getAllByRole('option')
+    .map((option) => option.textContent)
+}
+
 function axiosError(status: number) {
   return new AxiosError('failed', String(status), undefined, undefined, { status } as AxiosResponse)
 }
@@ -71,8 +77,8 @@ describe('TicketDetailPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Ticket #7' })).toBeInTheDocument()
     expect(get).toHaveBeenCalledWith('/tickets/7', expect.anything())
-    expect(screen.getByText(statusLabels[ticket.status])).toBeInTheDocument()
-    expect(screen.getByText(categoryLabels[TicketCategory.REFUND_REQUEST])).toBeInTheDocument()
+    expect(screen.getByLabelText('Status')).toHaveValue(ticket.status)
+    expect(screen.getByLabelText('Category')).toHaveValue(TicketCategory.REFUND_REQUEST)
     expect(screen.getByText(/Jo Customer/)).toHaveTextContent('jo@example.com')
     expect(screen.getByLabelText('Assigned to')).toHaveValue(alex.id)
     expect(screen.getByText(formatDateTime(ticket.createdAt))).toBeInTheDocument()
@@ -132,18 +138,76 @@ describe('TicketDetailPage', () => {
 
     fireEvent.change(select, { target: { value: sam.id } })
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to assign ticket')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to update ticket')
     expect(screen.getByLabelText('Assigned to')).toHaveValue(alex.id)
+  })
+
+  it('lists every status and category with their labels', async () => {
+    mockApi({ data: ticket })
+    renderPage()
+    const status = await screen.findByLabelText('Status')
+    const category = screen.getByLabelText('Category')
+
+    expect(optionNames(status)).toEqual(Object.values(TicketStatus).map((s) => statusLabels[s]))
+    expect(optionNames(category)).toEqual(['Uncategorized', ...Object.values(TicketCategory).map((c) => categoryLabels[c])])
+  })
+
+  it('updates the status', async () => {
+    mockApi({ data: ticket })
+    patch.mockResolvedValue({ data: { ...ticket, status: TicketStatus.RESOLVED } })
+    renderPage()
+
+    fireEvent.change(await screen.findByLabelText('Status'), { target: { value: TicketStatus.RESOLVED } })
+
+    await waitFor(() => expect(patch).toHaveBeenCalledWith('/tickets/7', { status: TicketStatus.RESOLVED }))
+    await waitFor(() => expect(screen.getByLabelText('Status')).toHaveValue(TicketStatus.RESOLVED))
+  })
+
+  it('updates the category', async () => {
+    mockApi({ data: { ...ticket, category: null } })
+    patch.mockResolvedValue({ data: { ...ticket, category: TicketCategory.TECHNICAL_QUESTION } })
+    renderPage()
+
+    fireEvent.change(await screen.findByLabelText('Category'), {
+      target: { value: TicketCategory.TECHNICAL_QUESTION },
+    })
+
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/tickets/7', { category: TicketCategory.TECHNICAL_QUESTION }),
+    )
+    await waitFor(() => expect(screen.getByLabelText('Category')).toHaveValue(TicketCategory.TECHNICAL_QUESTION))
+  })
+
+  it('clears the category', async () => {
+    mockApi({ data: ticket })
+    patch.mockResolvedValue({ data: { ...ticket, category: null } })
+    renderPage()
+
+    fireEvent.change(await screen.findByLabelText('Category'), { target: { value: '' } })
+
+    await waitFor(() => expect(patch).toHaveBeenCalledWith('/tickets/7', { category: null }))
+    await waitFor(() => expect(screen.getByLabelText('Category')).toHaveValue(''))
+  })
+
+  it('shows an error and keeps the status when updating it fails', async () => {
+    mockApi({ data: ticket })
+    patch.mockRejectedValue(axiosError(500))
+    renderPage()
+
+    fireEvent.change(await screen.findByLabelText('Status'), { target: { value: TicketStatus.CLOSED } })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to update ticket')
+    expect(screen.getByLabelText('Status')).toHaveValue(ticket.status)
   })
 
   it('formats dates as M/D/YYYY, h:mm:ss AM/PM', () => {
     expect(formatDateTime('2026-05-07T15:30:45.000Z')).toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} (AM|PM)$/)
   })
 
-  it('shows Uncategorized when the ticket has no category', async () => {
+  it('selects Uncategorized when the ticket has no category', async () => {
     mockApi({ data: { ...ticket, category: null } })
     renderPage()
-    expect(await screen.findByText('Uncategorized')).toBeInTheDocument()
+    expect(await screen.findByLabelText('Category')).toHaveValue('')
   })
 
   it('shows not found for a 404', async () => {

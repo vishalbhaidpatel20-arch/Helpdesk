@@ -1,21 +1,23 @@
-import { TicketStatus } from '@helpdesk/core'
+import { TicketCategory, TicketStatus } from '@helpdesk/core'
 import axios from 'axios'
 import { ArrowLeftIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router'
 import AppLink from '@/components/AppLink'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { NativeSelect } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
 import TicketAssignee from '@/components/TicketAssignee'
-import { useAssignTicket, useTicket } from '@/hooks/useTicket'
+import { useTicket, useUpdateTicket } from '@/hooks/useTicket'
 import { categoryLabels, formatDateTime, statusLabels } from '@/lib/tickets'
+import { cn } from '@/lib/utils'
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+// Label and value on one line, or the label above the value when stacked (for form controls)
+function Field({ label, stacked, children }: { label: string; stacked?: boolean; children: ReactNode }) {
   return (
-    <div className="flex gap-2">
-      <dt className="shrink-0 text-muted-foreground">{label}:</dt>
-      <dd>{children}</dd>
+    <div className={cn('flex gap-2', stacked && 'flex-col gap-1')}>
+      <dt className="shrink-0 text-muted-foreground">{stacked ? label : `${label}:`}</dt>
+      <dd className={cn(stacked && 'flex flex-col items-start gap-1 *:w-full')}>{children}</dd>
     </div>
   )
 }
@@ -23,10 +25,10 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 export default function TicketDetailPage() {
   const { id } = useParams()
   const { data: ticket, error } = useTicket(id)
-  const assign = useAssignTicket(id)
+  const update = useUpdateTicket(id)
 
   return (
-    <main className="mx-auto max-w-3xl p-8">
+    <main className="mx-auto max-w-5xl p-8">
       <AppLink to="/tickets" className="inline-flex items-center gap-1">
         <ArrowLeftIcon className="size-4" aria-hidden />
         Back to tickets
@@ -46,45 +48,74 @@ export default function TicketDetailPage() {
       ) : (
         <article className="mt-4">
           <h1 className="text-3xl font-bold">Ticket #{ticket.id}</h1>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <Badge variant={ticket.status === TicketStatus.OPEN ? 'default' : 'secondary'}>
-              {statusLabels[ticket.status]}
-            </Badge>
-            <span className="text-sm text-muted-foreground">
-              {ticket.category ? categoryLabels[ticket.category] : 'Uncategorized'}
-            </span>
+          {/* Two columns (stacked on small screens): the email on the left, the editable fields on the right */}
+          <div className="mt-6 grid gap-8 md:grid-cols-[1fr_11rem]">
+            <div className="min-w-0 space-y-6">
+              <dl className="space-y-1 text-sm">
+                <Field label="From">
+                  {ticket.senderName} ({ticket.senderEmail})
+                </Field>
+                <Field label="Created">{formatDateTime(ticket.createdAt)}</Field>
+                <Field label="Updated">{formatDateTime(ticket.updatedAt)}</Field>
+              </dl>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{ticket.subject}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* Email content is untrusted: render as plain text only */}
+                  <p className="whitespace-pre-wrap">{ticket.body}</p>
+                </CardContent>
+              </Card>
+            </div>
+            <aside className="space-y-4 text-sm">
+              <dl className="space-y-4">
+                <Field label="Assigned to" stacked>
+                  <TicketAssignee
+                    assignedTo={ticket.assignedTo}
+                    disabled={update.isPending}
+                    onChange={(assignedToId) => update.mutate({ assignedToId })}
+                  />
+                </Field>
+                <Field label="Status" stacked>
+                  <NativeSelect
+                    aria-label="Status"
+                    value={ticket.status}
+                    disabled={update.isPending}
+                    onChange={(e) => update.mutate({ status: e.target.value as TicketStatus })}
+                  >
+                    {Object.values(TicketStatus).map((status) => (
+                      <option key={status} value={status}>
+                        {statusLabels[status]}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+                <Field label="Category" stacked>
+                  <NativeSelect
+                    aria-label="Category"
+                    value={ticket.category ?? ''}
+                    disabled={update.isPending}
+                    onChange={(e) =>
+                      update.mutate({ category: e.target.value ? (e.target.value as TicketCategory) : null })
+                    }
+                  >
+                    <option value="">Uncategorized</option>
+                    {Object.values(TicketCategory).map((category) => (
+                      <option key={category} value={category}>
+                        {categoryLabels[category]}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </dl>
+              {update.isError && (
+                <p role="alert" className="text-destructive">
+                  Failed to update ticket
+                </p>
+              )}
+            </aside>
           </div>
-          {/* Two columns: sender and assignee on the first row, created and updated on the second */}
-          <dl className="mt-4 grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">
-            <Field label="From">
-              {ticket.senderName} ({ticket.senderEmail})
-            </Field>
-            <Field label="Assigned to">
-              <div className="flex flex-wrap items-center gap-2">
-                <TicketAssignee
-                  assignedTo={ticket.assignedTo}
-                  disabled={assign.isPending}
-                  onChange={(assignedToId) => assign.mutate({ assignedToId })}
-                />
-                {assign.isError && (
-                  <span role="alert" className="text-destructive">
-                    Failed to assign ticket
-                  </span>
-                )}
-              </div>
-            </Field>
-            <Field label="Created">{formatDateTime(ticket.createdAt)}</Field>
-            <Field label="Updated">{formatDateTime(ticket.updatedAt)}</Field>
-          </dl>
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>{ticket.subject}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Email content is untrusted: render as plain text only */}
-              <p className="whitespace-pre-wrap">{ticket.body}</p>
-            </CardContent>
-          </Card>
         </article>
       )}
     </main>

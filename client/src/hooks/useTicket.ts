@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { AssignTicketInput, TicketDetail } from '@helpdesk/core'
+import type { TicketDetail, UpdateTicketInput } from '@helpdesk/core'
 import { api } from '@/lib/api'
 
 export function useTicket(id: string | undefined) {
@@ -13,15 +13,18 @@ export function useTicket(id: string | undefined) {
   })
 }
 
-export function useAssignTicket(id: string | undefined) {
+// Updates the status, category and/or assignee; only the fields passed are changed
+export function useUpdateTicket(id: string | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (values: AssignTicketInput) => {
+    mutationFn: async (values: UpdateTicketInput) => {
       const { data } = await api.patch<TicketDetail>(`/tickets/${id}`, values)
       return data
     },
     onSuccess: (ticket) => {
       queryClient.setQueryData(['ticket', id], ticket)
+      // The list shows status and category, so refetch it next time it is visited
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
     },
   })
 }
