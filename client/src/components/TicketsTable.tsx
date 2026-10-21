@@ -7,6 +7,7 @@ import {
 import { TicketStatus, type Ticket, type TicketListQuery, type TicketSortField } from '@helpdesk/core'
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
 import { useMemo } from 'react'
+import AppLink from '@/components/AppLink'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -38,7 +39,11 @@ const columns = helper.columns([
   helper.accessor('subject', {
     header: 'Subject',
     sortDescFirst: false,
-    cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+    cell: (info) => (
+      <AppLink variant="text" to={`/tickets/${info.row.original.id}`}>
+        {info.getValue()}
+      </AppLink>
+    ),
   }),
   helper.display({
     id: 'sender',

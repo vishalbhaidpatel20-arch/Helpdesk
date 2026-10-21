@@ -115,6 +115,14 @@ describe('TicketsPage', () => {
     expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(0)
   })
 
+  it('links each subject to its ticket detail page', async () => {
+    get.mockResolvedValue(listResponse([newest, oldest]))
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: newest.subject })).toHaveAttribute('href', `/tickets/${newest.id}`)
+    expect(screen.getByRole('link', { name: oldest.subject })).toHaveAttribute('href', `/tickets/${oldest.id}`)
+  })
+
   it('shows an empty state when there are no tickets', async () => {
     get.mockResolvedValue(listResponse([]))
     renderPage()

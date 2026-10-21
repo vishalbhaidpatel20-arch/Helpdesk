@@ -77,6 +77,12 @@ export type Ticket = {
   createdAt: string
 }
 
+// A ticket as returned by GET /api/tickets/:id: the list fields plus the email text
+export type TicketDetail = Ticket & {
+  body: string
+  updatedAt: string
+}
+
 // Response of GET /api/tickets: one page of tickets plus the total matching the filters
 export type TicketListResponse = {
   tickets: Ticket[]

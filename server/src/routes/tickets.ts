@@ -50,3 +50,29 @@ ticketsRouter.get('/', requireAuth, async (req, res) => {
   ])
   res.json({ tickets, total, page, pageSize })
 })
+
+// Any signed-in user. A non-numeric id is treated as not found.
+ticketsRouter.get('/:id', requireAuth, async (req, res) => {
+  const id = Number(req.params.id)
+  const ticket = Number.isSafeInteger(id)
+    ? await prisma.ticket.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          subject: true,
+          body: true,
+          senderName: true,
+          senderEmail: true,
+          status: true,
+          category: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+    : null
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+  res.json(ticket)
+})

@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from 'react-router'
+import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import { Role } from '@/lib/roles'
 import { authClient } from '../lib/auth-client'
@@ -26,14 +27,8 @@ export default function Layout() {
           <Link to="/" className="text-lg font-bold">
             Helpdesk
           </Link>
-          <Link to="/tickets" className="text-sm text-muted-foreground hover:text-foreground">
-            Tickets
-          </Link>
-          {session.user.role === Role.ADMIN && (
-            <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground">
-              Users
-            </Link>
-          )}
+          <AppLink to="/tickets">Tickets</AppLink>
+          {session.user.role === Role.ADMIN && <AppLink to="/users">Users</AppLink>}
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted-foreground">{session.user.name}</span>
