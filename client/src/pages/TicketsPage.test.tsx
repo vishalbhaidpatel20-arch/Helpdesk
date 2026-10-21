@@ -201,6 +201,48 @@ describe('TicketsPage', () => {
       expect(screen.getByRole('columnheader', { name: /Subject/ })).toHaveAttribute('aria-sort', 'descending')
     })
 
+    it('never clears the sort: repeated clicks alternate ascending and descending', async () => {
+      get.mockResolvedValue(listResponse([newest, oldest]))
+      renderPage()
+      await screen.findByText('Refund please')
+      const subjectHeader = () => screen.getByRole('columnheader', { name: /Subject/ })
+
+      for (const expected of ['ascending', 'descending', 'ascending']) {
+        fireEvent.click(screen.getByRole('button', { name: /Subject/ }))
+        await waitFor(() => expect(subjectHeader()).toHaveAttribute('aria-sort', expected))
+      }
+    })
+
+    it('starts Received newest first when switching to it from another column', async () => {
+      get.mockResolvedValue(listResponse([newest, oldest]))
+      renderPage('/tickets?sort=subject&order=asc')
+      await screen.findByText('Refund please')
+
+      fireEvent.click(screen.getByRole('button', { name: /Received/ }))
+
+      await waitFor(() => expect(urlParams().get('sort')).toBe('createdAt'))
+      expect(urlParams().get('order')).toBe('desc')
+    })
+
+    it('has no sort button on the Sender and Category columns', async () => {
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage()
+      await screen.findByText('Refund please')
+
+      expect(screen.queryByRole('button', { name: /Sender/ })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Category/ })).not.toBeInTheDocument()
+      expect(screen.getByRole('columnheader', { name: 'Sender' })).not.toHaveAttribute('aria-sort')
+    })
+
+    it('shows the rows in the order the server returned them without re-sorting them', async () => {
+      // Oldest first although the sort says newest first: the table must not reorder rows itself
+      get.mockResolvedValue(listResponse([oldest, newest]))
+      renderPage()
+
+      await screen.findByText('Login problem')
+      expect(subjectsInOrder()).toEqual(['Login problem', 'Refund please'])
+    })
+
     it('restores the sort from the URL, as after a reload', async () => {
       get.mockResolvedValue(listResponse([newest, oldest]))
       renderPage('/tickets?sort=subject&order=asc')

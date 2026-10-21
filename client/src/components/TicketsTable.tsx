@@ -1,5 +1,12 @@
+import {
+  createColumnHelper,
+  rowSortingFeature,
+  tableFeatures,
+  useTable,
+} from '@tanstack/react-table'
 import { TicketStatus, type Ticket, type TicketListQuery, type TicketSortField } from '@helpdesk/core'
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
+import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -12,47 +19,128 @@ import {
 } from '@/components/ui/table'
 import { categoryLabels, statusLabels } from '@/lib/tickets'
 
+type Sort = Pick<TicketListQuery, 'sort' | 'order'>
+
 type Props = {
   // undefined while the first page loads
   tickets: Ticket[] | undefined
-  params: Pick<TicketListQuery, 'sort' | 'order'>
-  onSort: (field: TicketSortField) => void
+  params: Sort
+  onSortChange: (sort: Sort) => void
 }
 
-function SortableHead({
-  field,
-  label,
-  params,
-  onSort,
-}: { field: TicketSortField; label: string } & Omit<Props, 'tickets'>) {
-  const active = params.sort === field
-  const Icon = active ? (params.order === 'asc' ? ArrowUpIcon : ArrowDownIcon) : ArrowUpDownIcon
+// Sorting happens on the server (the API returns rows already ordered), so TanStack Table only tracks
+// the sort state and renders the headers: manualSorting means it never reorders the rows itself.
+const features = tableFeatures({ rowSortingFeature })
+const helper = createColumnHelper<typeof features, Ticket>()
 
-  return (
-    <TableHead aria-sort={active ? (params.order === 'asc' ? 'ascending' : 'descending') : 'none'}>
-      <button
-        type="button"
-        onClick={() => onSort(field)}
-        className="inline-flex items-center gap-1 rounded-sm font-medium hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-      >
-        {label}
-        <Icon className="size-3.5" aria-hidden />
-      </button>
-    </TableHead>
+// Column ids of the sortable columns must match the API's sort fields (TicketSortField)
+const columns = helper.columns([
+  helper.accessor('subject', {
+    header: 'Subject',
+    sortDescFirst: false,
+    cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+  }),
+  helper.display({
+    id: 'sender',
+    header: 'Sender',
+    enableSorting: false,
+    cell: ({ row }) => (
+      <>
+        <div>{row.original.senderName}</div>
+        <div className="text-muted-foreground">{row.original.senderEmail}</div>
+      </>
+    ),
+  }),
+  helper.accessor('status', {
+    header: 'Status',
+    sortDescFirst: false,
+    cell: (info) => (
+      <Badge variant={info.getValue() === TicketStatus.OPEN ? 'default' : 'secondary'}>
+        {statusLabels[info.getValue()]}
+      </Badge>
+    ),
+  }),
+  helper.accessor('category', {
+    header: 'Category',
+    enableSorting: false,
+    cell: (info) => (
+      <span className="text-muted-foreground">
+        {info.getValue() ? categoryLabels[info.getValue()!] : '—'}
+      </span>
+    ),
+  }),
+  helper.accessor('createdAt', {
+    header: 'Received',
+    // Newest first is the natural first direction for dates
+    sortDescFirst: true,
+    cell: (info) => new Date(info.getValue()).toLocaleDateString(),
+  }),
+])
+
+const NO_TICKETS: Ticket[] = []
+
+export default function TicketsTable({ tickets, params, onSortChange }: Props) {
+  const sorting = useMemo(
+    () => [{ id: params.sort, desc: params.order === 'desc' }],
+    [params.sort, params.order],
   )
-}
 
-export default function TicketsTable({ tickets, params, onSort }: Props) {
+  const table = useTable({
+    features,
+    columns,
+    data: tickets ?? NO_TICKETS,
+    manualSorting: true,
+    // The API always needs a sort, so clicking cycles asc <-> desc and never clears it
+    enableSortingRemoval: false,
+    enableMultiSort: false,
+    state: { sorting },
+    onSortingChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(sorting) : updater
+      const [first] = next
+      if (first) {
+        onSortChange({ sort: first.id as TicketSortField, order: first.desc ? 'desc' : 'asc' })
+      }
+    },
+  })
+
   return (
     <Table className="mt-4" aria-busy={tickets === undefined}>
       <TableHeader>
-        <TableRow>
-          <SortableHead field="subject" label="Subject" params={params} onSort={onSort} />
-          <TableHead>Sender</TableHead>
-          <SortableHead field="status" label="Status" params={params} onSort={onSort} />
-          <TableHead>Category</TableHead>
-          <SortableHead field="createdAt" label="Received" params={params} onSort={onSort} />
-        </TableRow>
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow key={headerGroup.id}>
+            {headerGroup.headers.map((header) => {
+              const sorted = header.column.getIsSorted()
+              const Icon = sorted === 'asc' ? ArrowUpIcon : sorted === 'desc' ? ArrowDownIcon : ArrowUpDownIcon
+              return (
+                <TableHead
+                  key={header.id}
+                  aria-sort={
+                    header.column.getCanSort()
+                      ? sorted === 'asc'
+                        ? 'ascending'
+                        : sorted === 'desc'
+                          ? 'descending'
+                          : 'none'
+                      : undefined
+                  }
+                >
+                  {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                    <button
+                      type="button"
+                      onClick={header.column.getToggleSortingHandler()}
+                      className="inline-flex items-center gap-1 rounded-sm font-medium hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                      <table.FlexRender header={header} />
+                      <Icon className="size-3.5" aria-hidden />
+                    </button>
+                  ) : (
+                    <table.FlexRender header={header} />
+                  )}
+                </TableHead>
+              )
+            })}
+          </TableRow>
+        ))}
       </TableHeader>
       <TableBody>
         {tickets === undefined ? (
@@ -77,27 +165,18 @@ export default function TicketsTable({ tickets, params, onSort }: Props) {
           ))
         ) : tickets.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} className="text-center text-muted-foreground">
+            <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
               No tickets found
             </TableCell>
           </TableRow>
         ) : (
-          tickets.map((ticket) => (
-            <TableRow key={ticket.id}>
-              <TableCell className="font-medium">{ticket.subject}</TableCell>
-              <TableCell>
-                <div>{ticket.senderName}</div>
-                <div className="text-muted-foreground">{ticket.senderEmail}</div>
-              </TableCell>
-              <TableCell>
-                <Badge variant={ticket.status === TicketStatus.OPEN ? 'default' : 'secondary'}>
-                  {statusLabels[ticket.status]}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {ticket.category ? categoryLabels[ticket.category] : '—'}
-              </TableCell>
-              <TableCell>{new Date(ticket.createdAt).toLocaleDateString()}</TableCell>
+          table.getRowModel().rows.map((row) => (
+            <TableRow key={row.id}>
+              {row.getAllCells().map((cell) => (
+                <TableCell key={cell.id}>
+                  <table.FlexRender cell={cell} />
+                </TableCell>
+              ))}
             </TableRow>
           ))
         )}

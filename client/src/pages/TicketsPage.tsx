@@ -1,4 +1,3 @@
-import type { TicketSortField } from '@helpdesk/core'
 import TicketFilters from '@/components/TicketFilters'
 import TicketsPagination from '@/components/TicketsPagination'
 import TicketsTable from '@/components/TicketsTable'
@@ -8,15 +7,6 @@ import { useTickets } from '@/hooks/useTickets'
 export default function TicketsPage() {
   const { params, setParams } = useTicketParams()
   const { data, error } = useTickets(params)
-
-  // Clicking the sorted column flips the direction; a new column starts newest / A-Z first
-  function onSort(field: TicketSortField) {
-    if (params.sort === field) {
-      setParams({ order: params.order === 'asc' ? 'desc' : 'asc' })
-    } else {
-      setParams({ sort: field, order: field === 'createdAt' ? 'desc' : 'asc' })
-    }
-  }
 
   return (
     <main className="mx-auto max-w-5xl p-8">
@@ -28,7 +18,8 @@ export default function TicketsPage() {
         </p>
       ) : (
         <>
-          <TicketsTable tickets={data?.tickets} params={params} onSort={onSort} />
+          {/* The table reports sort changes; the server does the sorting */}
+          <TicketsTable tickets={data?.tickets} params={params} onSortChange={setParams} />
           {data && (
             <TicketsPagination
               page={data.page}
