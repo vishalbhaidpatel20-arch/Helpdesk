@@ -32,6 +32,7 @@ Run from the repo root unless noted.
 - `bun run --cwd server db:generate` — regenerate the Prisma client
 - `bun run --cwd client test` — run client component tests (Vitest + React Testing Library, jsdom; files are `*.test.tsx` next to the code, setup in `client/src/test/setup.ts`; mock `@/lib/api` rather than the network)
 - `bun run --cwd client test:watch` — Vitest watch mode: reruns affected component tests on every save, for writing tests
+- `bun run --cwd server test` — run server unit tests (`bun test`, files are `*.test.ts` next to the code; mock external services such as the AI SDK, never call them)
 - `bun run test:e2e` — run the Playwright e2e tests (`test:e2e:ui` for the UI runner)
 
 ## Conventions

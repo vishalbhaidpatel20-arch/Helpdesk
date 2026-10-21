@@ -69,8 +69,7 @@ describe('ReplyForm', () => {
 
   it.each([
     ['empty', ''],
-    ['whitespace-only', '   
-  '],
+    ['whitespace-only', '   \n  '],
   ])('keeps the send button disabled for a %s reply', (_name, text) => {
     renderWithQuery(<ReplyForm ticketId="7" />)
 

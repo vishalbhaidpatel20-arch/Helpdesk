@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { createReplySchema, type CreateReplyInput } from '@helpdesk/core'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -18,7 +18,7 @@ export default function ReplyForm({ ticketId }: { ticketId: string | undefined }
     clearErrors,
     getValues,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CreateReplyInput>({
     resolver: zodResolver(createReplySchema),
@@ -31,7 +31,7 @@ export default function ReplyForm({ ticketId }: { ticketId: string | undefined }
       : fallback
   }
 
-  const isBlank = watch('body').trim() === ''
+  const isBlank = useWatch({ control, name: 'body' }).trim() === ''
 
   async function onSubmit(values: CreateReplyInput) {
     try {

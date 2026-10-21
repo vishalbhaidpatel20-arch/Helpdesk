@@ -287,15 +287,15 @@ describe('TicketDetailPage', () => {
     expect(screen.queryByText('No replies yet.')).not.toBeInTheDocument()
   })
 
-  it('does not submit an empty reply', async () => {
+  it('keeps the send button disabled for an empty reply', async () => {
     mockApi({ data: ticket })
     renderPage()
 
     await screen.findByLabelText('Reply')
+    expect(screen.getByRole('button', { name: 'Send reply' })).toBeDisabled()
     fireEvent.change(screen.getByLabelText('Reply'), { target: { value: '   ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Send reply' }))
 
-    expect(await screen.findByText('Reply is required')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send reply' })).toBeDisabled()
     expect(post).not.toHaveBeenCalled()
   })
 
