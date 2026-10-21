@@ -2,8 +2,8 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 import { inboundEmailSchema } from '@helpdesk/core'
 import { Router } from 'express'
 import { prisma } from '../db'
-import { classifyAndSaveTicket } from '../lib/classifyTicket'
 import { parseBody } from '../lib/parseBody'
+import { enqueueClassifyTicket } from '../lib/queue'
 
 export const webhooksRouter = Router()
 
@@ -37,6 +37,7 @@ webhooksRouter.post('/inbound-email', async (req, res) => {
     messageId: email.messageId,
   }
 
+  
   // A repeated Message-ID (provider retry) returns the existing ticket instead of creating a duplicate
   if (email.messageId) {
     const existing = await prisma.ticket.findUnique({
@@ -50,8 +51,7 @@ webhooksRouter.post('/inbound-email', async (req, res) => {
   }
 
   const ticket = await prisma.ticket.create({ data, select: { id: true } })
+  // Only queued here (a quick insert); a pg-boss worker calls the model and sets the category later
+  await enqueueClassifyTicket(ticket.id)
   res.status(201).json({ ticket })
-
-  // Not awaited: the provider gets its response now and the category appears when the model answers
-  void classifyAndSaveTicket({ id: ticket.id, subject: data.subject, body: data.body })
 })

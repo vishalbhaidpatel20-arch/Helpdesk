@@ -4,6 +4,7 @@ import express from 'express'
 import type { NextFunction, Request, Response } from 'express'
 import helmet from 'helmet'
 import { auth } from './auth'
+import { startQueue, stopQueue } from './lib/queue'
 import { ticketsRouter } from './routes/tickets'
 import { usersRouter } from './routes/users'
 import { webhooksRouter } from './routes/webhooks'
@@ -33,6 +34,16 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: 'Internal server error' })
 })
 
-app.listen(port, () => {
+await startQueue()
+
+const server = app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`)
 })
+
+// Let the running job finish before exiting
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => {
+    server.close()
+    void stopQueue().finally(() => process.exit(0))
+  })
+}

@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:seed": "bun prisma/seed.ts",
     "test:serve": "bun scripts/test-server.ts",
-    "db:seed:tickets": "bun prisma/seed-tickets.ts"
+    "db:seed:tickets": "bun prisma/seed-tickets.ts",
+    "db:classify:tickets": "bun prisma/classify-tickets.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.102",
@@ -25,6 +26,7 @@
     "express": "^5.0.0",
     "helmet": "^8.3.0",
     "pg": "^8.23.1",
+    "pg-boss": "^12.38.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
