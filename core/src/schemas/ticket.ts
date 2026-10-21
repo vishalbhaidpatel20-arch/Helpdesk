@@ -77,11 +77,23 @@ export type Ticket = {
   createdAt: string
 }
 
-// A ticket as returned by GET /api/tickets/:id: the list fields plus the email text
+// An agent a ticket can be assigned to (GET /api/tickets/agents)
+export type TicketAgent = { id: string; name: string }
+
+// A ticket as returned by GET /api/tickets/:id: the list fields plus the email text and assignee
 export type TicketDetail = Ticket & {
   body: string
+  // null when the ticket is unassigned
+  assignedTo: TicketAgent | null
   updatedAt: string
 }
+
+// Body of PATCH /api/tickets/:id; null unassigns the ticket
+export const assignTicketSchema = z.object({
+  assignedToId: z.string({ error: 'Agent is required' }).min(1, 'Agent is required').nullable(),
+})
+
+export type AssignTicketInput = z.infer<typeof assignTicketSchema>
 
 // Response of GET /api/tickets: one page of tickets plus the total matching the filters
 export type TicketListResponse = {

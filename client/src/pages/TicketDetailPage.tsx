@@ -1,16 +1,29 @@
 import { TicketStatus } from '@helpdesk/core'
 import axios from 'axios'
 import { ArrowLeftIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useParams } from 'react-router'
 import AppLink from '@/components/AppLink'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useTicket } from '@/hooks/useTicket'
-import { categoryLabels, statusLabels } from '@/lib/tickets'
+import TicketAssignee from '@/components/TicketAssignee'
+import { useAssignTicket, useTicket } from '@/hooks/useTicket'
+import { categoryLabels, formatDateTime, statusLabels } from '@/lib/tickets'
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex gap-2">
+      <dt className="shrink-0 text-muted-foreground">{label}:</dt>
+      <dd>{children}</dd>
+    </div>
+  )
+}
 
 export default function TicketDetailPage() {
   const { id } = useParams()
   const { data: ticket, error } = useTicket(id)
+  const assign = useAssignTicket(id)
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -32,7 +45,7 @@ export default function TicketDetailPage() {
         </div>
       ) : (
         <article className="mt-4">
-          <h1 className="text-3xl font-bold">{ticket.subject}</h1>
+          <h1 className="text-3xl font-bold">Ticket #{ticket.id}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <Badge variant={ticket.status === TicketStatus.OPEN ? 'default' : 'secondary'}>
               {statusLabels[ticket.status]}
@@ -41,16 +54,37 @@ export default function TicketDetailPage() {
               {ticket.category ? categoryLabels[ticket.category] : 'Uncategorized'}
             </span>
           </div>
-          <dl className="mt-4 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-muted-foreground">From</dt>
-            <dd>
+          {/* Two columns: sender and assignee on the first row, created and updated on the second */}
+          <dl className="mt-4 grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">
+            <Field label="From">
               {ticket.senderName} ({ticket.senderEmail})
-            </dd>
-            <dt className="text-muted-foreground">Received</dt>
-            <dd>{new Date(ticket.createdAt).toLocaleString()}</dd>
+            </Field>
+            <Field label="Assigned to">
+              <div className="flex flex-wrap items-center gap-2">
+                <TicketAssignee
+                  assignedTo={ticket.assignedTo}
+                  disabled={assign.isPending}
+                  onChange={(assignedToId) => assign.mutate({ assignedToId })}
+                />
+                {assign.isError && (
+                  <span role="alert" className="text-destructive">
+                    Failed to assign ticket
+                  </span>
+                )}
+              </div>
+            </Field>
+            <Field label="Created">{formatDateTime(ticket.createdAt)}</Field>
+            <Field label="Updated">{formatDateTime(ticket.updatedAt)}</Field>
           </dl>
-          {/* Email content is untrusted: render as plain text only */}
-          <p className="mt-6 whitespace-pre-wrap rounded-md border p-4">{ticket.body}</p>
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>{ticket.subject}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Email content is untrusted: render as plain text only */}
+              <p className="whitespace-pre-wrap">{ticket.body}</p>
+            </CardContent>
+          </Card>
         </article>
       )}
     </main>

@@ -1,10 +1,24 @@
-import { ticketListQuerySchema } from '@helpdesk/core'
+import { assignTicketSchema, ticketListQuerySchema } from '@helpdesk/core'
 import { Router } from 'express'
+import { Role } from '../../generated/enums'
 import { prisma } from '../db'
-import { parseQuery } from '../lib/parseBody'
+import { parseBody, parseQuery } from '../lib/parseBody'
 import { requireAuth } from '../middleware/auth'
 
 export const ticketsRouter = Router()
+
+const detailSelect = {
+  id: true,
+  subject: true,
+  body: true,
+  senderName: true,
+  senderEmail: true,
+  status: true,
+  category: true,
+  assignedTo: { select: { id: true, name: true } },
+  createdAt: true,
+  updatedAt: true,
+}
 
 // Any signed-in user (agent or admin). Filter by status/category, sort (newest first by default) and paginate.
 ticketsRouter.get('/', requireAuth, async (req, res) => {
@@ -51,28 +65,58 @@ ticketsRouter.get('/', requireAuth, async (req, res) => {
   res.json({ tickets, total, page, pageSize })
 })
 
-// Any signed-in user. A non-numeric id is treated as not found.
+// Any signed-in user. The agents a ticket can be assigned to (must be declared before /:id).
+ticketsRouter.get('/agents', requireAuth, async (_req, res) => {
+  const agents = await prisma.user.findMany({
+    where: { deletedAt: null, role: Role.AGENT },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  })
+  res.json({ agents })
+})
+
+// A non-numeric id is treated as not found
+function parseTicketId(value: string) {
+  const id = Number(value)
+  return Number.isSafeInteger(id) ? id : undefined
+}
+
+// Any signed-in user.
 ticketsRouter.get('/:id', requireAuth, async (req, res) => {
-  const id = Number(req.params.id)
-  const ticket = Number.isSafeInteger(id)
-    ? await prisma.ticket.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          subject: true,
-          body: true,
-          senderName: true,
-          senderEmail: true,
-          status: true,
-          category: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      })
-    : null
+  const id = parseTicketId(String(req.params.id))
+  const ticket =
+    id === undefined ? null : await prisma.ticket.findUnique({ where: { id }, select: detailSelect })
   if (!ticket) {
     res.status(404).json({ error: 'Ticket not found' })
     return
   }
+  res.json(ticket)
+})
+
+// Any signed-in user. Assigns the ticket to an agent, or unassigns it with null.
+ticketsRouter.patch('/:id', requireAuth, async (req, res) => {
+  const body = parseBody(assignTicketSchema, req, res)
+  if (!body) return
+  const id = parseTicketId(String(req.params.id))
+
+  if (id === undefined || !(await prisma.ticket.findUnique({ where: { id } }))) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+  if (body.assignedToId !== null) {
+    const agent = await prisma.user.findFirst({
+      where: { id: body.assignedToId, deletedAt: null, role: Role.AGENT },
+    })
+    if (!agent) {
+      res.status(400).json({ error: 'Agent not found' })
+      return
+    }
+  }
+
+  const ticket = await prisma.ticket.update({
+    where: { id },
+    data: { assignedToId: body.assignedToId },
+    select: detailSelect,
+  })
   res.json(ticket)
 })

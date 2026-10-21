@@ -20,6 +20,7 @@ model User {
   deletedAt     DateTime?
   sessions      Session[]
   accounts      Account[]
+  tickets       Ticket[]
 
   @@map("user")
 }
@@ -89,19 +90,23 @@ enum TicketCategory {
 }
 
 model Ticket {
-  id          Int             @id @default(autoincrement())
-  subject     String
-  body        String
-  senderName  String
-  senderEmail String
+  id           Int             @id @default(autoincrement())
+  subject      String
+  body         String
+  senderName   String
+  senderEmail  String
   // Email Message-ID: lets the inbound webhook ignore provider retries of the same email
-  messageId   String?         @unique
-  status      TicketStatus    @default(OPEN)
+  messageId    String?         @unique
+  status       TicketStatus    @default(OPEN)
   // No default: set later (e.g. by AI classification), null until then
-  category    TicketCategory?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  category     TicketCategory?
+  // Agent the ticket is assigned to; null means unassigned
+  assignedToId String?
+  assignedTo   User?           @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@index([status, createdAt])
+  @@index([assignedToId])
   @@map("ticket")
 }

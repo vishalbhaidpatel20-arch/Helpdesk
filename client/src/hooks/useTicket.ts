@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import type { TicketDetail } from '@helpdesk/core'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { AssignTicketInput, TicketDetail } from '@helpdesk/core'
 import { api } from '@/lib/api'
 
 export function useTicket(id: string | undefined) {
@@ -10,5 +10,18 @@ export function useTicket(id: string | undefined) {
       return data
     },
     enabled: id !== undefined,
+  })
+}
+
+export function useAssignTicket(id: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (values: AssignTicketInput) => {
+      const { data } = await api.patch<TicketDetail>(`/tickets/${id}`, values)
+      return data
+    },
+    onSuccess: (ticket) => {
+      queryClient.setQueryData(['ticket', id], ticket)
+    },
   })
 }
