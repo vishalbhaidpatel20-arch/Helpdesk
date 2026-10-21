@@ -93,7 +93,7 @@ test.describe('ticket list', () => {
     await postTicket(request, `Search B ${tok}`, { senderEmail: `findme-${tok}@example.com` })
 
     await agentPage.goto('/tickets')
-    const search = agentPage.getByRole('textbox', { name: 'Search tickets' })
+    const search = agentPage.getByRole('searchbox', { name: 'Search tickets' })
     const rowA = rowsWith(agentPage, `Search A ${tok}`)
     const rowB = rowsWith(agentPage, `Search B ${tok}`)
 

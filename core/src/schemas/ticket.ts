@@ -66,25 +66,26 @@ export const ticketListQuerySchema = z.object({
 
 export type TicketListQuery = z.infer<typeof ticketListQuerySchema>
 
-// A ticket as returned by GET /api/tickets
-export type Ticket = {
+// An agent a ticket can be assigned to (GET /api/tickets/agents)
+export interface TicketAgent {
+  id: string
+  name: string
+}
+
+// A support ticket: the single definition of its shape. API responses use this or a Pick of it.
+export interface Ticket {
   id: number
   subject: string
+  // The email text (untrusted: render as plain text only)
+  body: string
   senderName: string
   senderEmail: string
   status: TicketStatus
+  // null until classified
   category: TicketCategory | null
-  createdAt: string
-}
-
-// An agent a ticket can be assigned to (GET /api/tickets/agents)
-export type TicketAgent = { id: string; name: string }
-
-// A ticket as returned by GET /api/tickets/:id: the list fields plus the email text and assignee
-export type TicketDetail = Ticket & {
-  body: string
   // null when the ticket is unassigned
   assignedTo: TicketAgent | null
+  createdAt: string
   updatedAt: string
 }
 
@@ -108,4 +109,25 @@ export type TicketListResponse = {
   total: number
   page: number
   pageSize: number
+}
+
+export const MAX_REPLY_LENGTH = 50_000
+
+// Body of POST /api/tickets/:id/replies
+export const createReplySchema = z.object({
+  body: z
+    .string({ error: 'Reply is required' })
+    .trim()
+    .min(1, 'Reply is required')
+    .max(MAX_REPLY_LENGTH, `Reply must be at most ${MAX_REPLY_LENGTH} characters`),
+})
+
+export type CreateReplyInput = z.infer<typeof createReplySchema>
+
+// A reply as returned by GET /api/tickets/:id/replies (oldest first) and POST /api/tickets/:id/replies
+export interface TicketReply {
+  id: number
+  body: string
+  author: TicketAgent
+  createdAt: string
 }

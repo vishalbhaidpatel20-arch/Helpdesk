@@ -2,21 +2,29 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AxiosError, type AxiosResponse } from 'axios'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { TicketCategory, TicketStatus, type TicketAgent, type TicketDetail } from '@helpdesk/core'
+import { TicketCategory, TicketStatus, type TicketAgent, type Ticket, type TicketReply } from '@helpdesk/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
 import { categoryLabels, formatDateTime, statusLabels } from '@/lib/tickets'
 import TicketDetailPage from './TicketDetailPage'
 
-vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), patch: vi.fn() } }))
+vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), patch: vi.fn(), post: vi.fn() } }))
 
 const get = vi.mocked(api.get)
 const patch = vi.mocked(api.patch)
+const post = vi.mocked(api.post)
 
 const alex: TicketAgent = { id: 'u1', name: 'Alex Agent' }
 const sam: TicketAgent = { id: 'u2', name: 'Sam Support' }
 
-const ticket: TicketDetail = {
+const reply: TicketReply = {
+  id: 1,
+  body: 'We are on it\n<i>not html</i>',
+  author: alex,
+  createdAt: '2026-05-06T11:00:00.000Z',
+}
+
+const ticket: Ticket = {
   id: 7,
   subject: 'Refund please',
   body: 'Line one\n<b>not html</b>',
@@ -40,10 +48,15 @@ function axiosError(status: number) {
 }
 
 // The page loads the ticket and the agent list through the same mocked api.get
-function mockApi(ticketResult: Promise<unknown> | { data: TicketDetail }) {
-  get.mockImplementation((url) =>
-    url === '/tickets/agents' ? Promise.resolve({ data: { agents: [alex, sam] } }) : (ticketResult as never),
-  )
+function mockApi(
+  ticketResult: Promise<unknown> | { data: Ticket },
+  repliesResult: () => Promise<unknown> | { data: { replies: TicketReply[] } } = () => ({ data: { replies: [] } }),
+) {
+  get.mockImplementation((url) => {
+    if (url === '/tickets/agents') return Promise.resolve({ data: { agents: [alex, sam] } }) as never
+    if (url === '/tickets/7/replies') return repliesResult() as never
+    return ticketResult as never
+  })
 }
 
 function renderPage() {
@@ -63,6 +76,7 @@ describe('TicketDetailPage', () => {
   beforeEach(() => {
     get.mockReset()
     patch.mockReset()
+    post.mockReset()
   })
 
   it('shows a loading state', () => {
@@ -220,5 +234,80 @@ describe('TicketDetailPage', () => {
     mockApi(Promise.reject(axiosError(500)))
     renderPage()
     expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load ticket')
+  })
+
+  it('shows the replies below the message, oldest first', async () => {
+    const second: TicketReply = { ...reply, id: 2, body: 'Second reply', author: sam }
+    mockApi({ data: ticket }, () => ({ data: { replies: [reply, second] } }))
+    renderPage()
+
+    const list = await screen.findByRole('list', { name: 'Replies' })
+    const items = within(list).getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(items[0]).toHaveTextContent(alex.name)
+    expect(items[0]).toHaveTextContent(formatDateTime(reply.createdAt))
+    // Reply text is rendered as plain text, never as HTML
+    expect(within(items[0]).getByText(/not html/)).toHaveTextContent('<i>not html</i>')
+    expect(items[1]).toHaveTextContent('Second reply')
+  })
+
+  it('shows an empty state when there are no replies', async () => {
+    mockApi({ data: ticket })
+    renderPage()
+    expect(await screen.findByText('No replies yet.')).toBeInTheDocument()
+  })
+
+  it('shows a loading state for the replies', async () => {
+    mockApi({ data: ticket }, () => new Promise(() => {}))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Replies' })
+    expect(screen.queryByText('No replies yet.')).not.toBeInTheDocument()
+    expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument()
+  })
+
+  it('shows an error when loading the replies fails', async () => {
+    mockApi({ data: ticket }, () => Promise.reject(axiosError(500)))
+    renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load replies')
+  })
+
+  it('submits a reply, adds it to the thread and clears the form', async () => {
+    mockApi({ data: ticket })
+    post.mockResolvedValue({ data: reply })
+    renderPage()
+
+    const input = await screen.findByLabelText('Reply')
+    fireEvent.change(input, { target: { value: '  We are on it  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send reply' }))
+
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/tickets/7/replies', { body: 'We are on it' }))
+    const list = await screen.findByRole('list', { name: 'Replies' })
+    expect(within(list).getByText(/We are on it/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText('Reply')).toHaveValue(''))
+    expect(screen.queryByText('No replies yet.')).not.toBeInTheDocument()
+  })
+
+  it('does not submit an empty reply', async () => {
+    mockApi({ data: ticket })
+    renderPage()
+
+    await screen.findByLabelText('Reply')
+    fireEvent.change(screen.getByLabelText('Reply'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send reply' }))
+
+    expect(await screen.findByText('Reply is required')).toBeInTheDocument()
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('shows an error and keeps the text when sending fails', async () => {
+    mockApi({ data: ticket })
+    post.mockRejectedValue(axiosError(500))
+    renderPage()
+
+    fireEvent.change(await screen.findByLabelText('Reply'), { target: { value: 'Hello' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send reply' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to send reply')
+    expect(screen.getByLabelText('Reply')).toHaveValue('Hello')
   })
 })

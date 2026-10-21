@@ -18,7 +18,10 @@ const newest: Ticket = {
   senderEmail: 'jo@example.com',
   status: TicketStatus.OPEN,
   category: null,
+  body: 'I want my money back.',
+  assignedTo: null,
   createdAt: '2026-05-06T10:00:00.000Z',
+  updatedAt: '2026-05-06T10:00:00.000Z',
 }
 const oldest: Ticket = {
   id: 1,
@@ -27,7 +30,10 @@ const oldest: Ticket = {
   senderEmail: 'pat@example.com',
   status: TicketStatus.RESOLVED,
   category: TicketCategory.TECHNICAL_QUESTION,
+  body: 'I cannot log in.',
+  assignedTo: null,
   createdAt: '2026-03-04T10:00:00.000Z',
+  updatedAt: '2026-03-04T10:00:00.000Z',
 }
 
 function listResponse(tickets: Ticket[], overrides: Partial<TicketListResponse> = {}) {

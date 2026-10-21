@@ -21,6 +21,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   tickets       Ticket[]
+  replies       Reply[]
 
   @@map("user")
 }
@@ -105,8 +106,23 @@ model Ticket {
   assignedTo   User?           @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  replies      Reply[]
 
   @@index([status, createdAt])
   @@index([assignedToId])
   @@map("ticket")
+}
+
+// An agent's reply on a ticket (stored only; sending it by email is not built yet)
+model Reply {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+  @@map("reply")
 }

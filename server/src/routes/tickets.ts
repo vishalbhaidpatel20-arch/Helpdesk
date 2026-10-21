@@ -1,13 +1,13 @@
-import { ticketListQuerySchema, updateTicketSchema } from '@helpdesk/core'
+import { createReplySchema, ticketListQuerySchema, updateTicketSchema } from '@helpdesk/core'
 import { Router } from 'express'
 import { Role } from '../../generated/enums'
 import { prisma } from '../db'
 import { parseBody, parseQuery } from '../lib/parseBody'
-import { requireAuth } from '../middleware/auth'
+import { requireAuth, type Session } from '../middleware/auth'
 
 export const ticketsRouter = Router()
 
-const detailSelect = {
+const ticketSelect = {
   id: true,
   subject: true,
   body: true,
@@ -46,15 +46,7 @@ ticketsRouter.get('/', requireAuth, async (req, res) => {
   const [tickets, total] = await prisma.$transaction([
     prisma.ticket.findMany({
       where,
-      select: {
-        id: true,
-        subject: true,
-        senderName: true,
-        senderEmail: true,
-        status: true,
-        category: true,
-        createdAt: true,
-      },
+      select: ticketSelect,
       // id breaks ties so pages never overlap or skip rows
       orderBy: [{ [sort]: order }, { id: order }],
       skip: (page - 1) * pageSize,
@@ -85,7 +77,7 @@ function parseTicketId(value: string) {
 ticketsRouter.get('/:id', requireAuth, async (req, res) => {
   const id = parseTicketId(String(req.params.id))
   const ticket =
-    id === undefined ? null : await prisma.ticket.findUnique({ where: { id }, select: detailSelect })
+    id === undefined ? null : await prisma.ticket.findUnique({ where: { id }, select: ticketSelect })
   if (!ticket) {
     res.status(404).json({ error: 'Ticket not found' })
     return
@@ -114,6 +106,45 @@ ticketsRouter.patch('/:id', requireAuth, async (req, res) => {
     }
   }
 
-  const ticket = await prisma.ticket.update({ where: { id }, data: body, select: detailSelect })
+  const ticket = await prisma.ticket.update({ where: { id }, data: body, select: ticketSelect })
   res.json(ticket)
+})
+
+const replySelect = {
+  id: true,
+  body: true,
+  author: { select: { id: true, name: true } },
+  createdAt: true,
+}
+
+// Any signed-in user. The ticket's replies, oldest first.
+ticketsRouter.get('/:id/replies', requireAuth, async (req, res) => {
+  const id = parseTicketId(String(req.params.id))
+  if (id === undefined || !(await prisma.ticket.findUnique({ where: { id } }))) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+  const replies = await prisma.reply.findMany({
+    where: { ticketId: id },
+    select: replySelect,
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  })
+  res.json({ replies })
+})
+
+// Any signed-in user. Adds a reply authored by the signed-in user.
+ticketsRouter.post('/:id/replies', requireAuth, async (req, res) => {
+  const body = parseBody(createReplySchema, req, res)
+  if (!body) return
+  const id = parseTicketId(String(req.params.id))
+  if (id === undefined || !(await prisma.ticket.findUnique({ where: { id } }))) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+  const session = res.locals.session as Session
+  const reply = await prisma.reply.create({
+    data: { ticketId: id, authorId: session.user.id, body: body.body },
+    select: replySelect,
+  })
+  res.status(201).json(reply)
 })
