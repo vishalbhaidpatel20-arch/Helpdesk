@@ -15,7 +15,7 @@ export default function TicketDetailPage() {
   const { data: ticket, error } = useTicket(id)
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
+    <main className="mx-auto max-w-5xl p-4 sm:p-8">
       <AppLink to="/tickets" className="inline-flex items-center gap-1">
         <ArrowLeftIcon className="size-4" aria-hidden />
         Back to tickets
@@ -34,7 +34,7 @@ export default function TicketDetailPage() {
         </div>
       ) : (
         <article className="mt-4">
-          <h1 className="text-3xl font-bold">Ticket #{ticket.id}</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Ticket #{ticket.id}</h1>
           {/* Two columns (stacked on small screens): the email on the left, the editable fields on the right */}
           <div className="mt-6 grid gap-8 md:grid-cols-[1fr_11rem]">
             <div className="min-w-0 space-y-6">

@@ -4,6 +4,7 @@ import { Navigate, useNavigate } from 'react-router'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import Logo from '@/components/Logo'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { authClient } from '../lib/auth-client'
@@ -38,10 +39,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted p-4">
-      <Card className="w-full max-w-sm">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-100 via-background to-violet-100 p-4">
+      <Card className="w-full max-w-sm shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Helpdesk</CardTitle>
+          <Logo className="mb-2 text-2xl [&_svg]:size-10" />
+          <CardTitle className="sr-only">Helpdesk</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>

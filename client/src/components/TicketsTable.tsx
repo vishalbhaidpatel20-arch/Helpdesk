@@ -4,7 +4,7 @@ import {
   tableFeatures,
   useTable,
 } from '@tanstack/react-table'
-import { TicketStatus, type Ticket, type TicketListQuery, type TicketSortField } from '@helpdesk/core'
+import { type Ticket, type TicketListQuery, type TicketSortField } from '@helpdesk/core'
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import AppLink from '@/components/AppLink'
@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { categoryLabels, statusLabels } from '@/lib/tickets'
+import { categoryLabels, statusColors, statusLabels } from '@/lib/tickets'
 
 type Sort = Pick<TicketListQuery, 'sort' | 'order'>
 
@@ -60,7 +60,7 @@ const columns = helper.columns([
     header: 'Status',
     sortDescFirst: false,
     cell: (info) => (
-      <Badge variant={info.getValue() === TicketStatus.OPEN ? 'default' : 'secondary'}>
+      <Badge variant="secondary" className={statusColors[info.getValue()]}>
         {statusLabels[info.getValue()]}
       </Badge>
     ),
@@ -83,6 +83,12 @@ const columns = helper.columns([
 ])
 
 const NO_TICKETS: Ticket[] = []
+
+// Secondary columns are hidden on small screens so the table fits a phone without sideways scrolling
+const hiddenOnSmall: Record<string, string> = {
+  category: 'hidden md:table-cell',
+  createdAt: 'hidden sm:table-cell',
+}
 
 export default function TicketsTable({ tickets, params, onSortChange }: Props) {
   const sorting = useMemo(
@@ -109,7 +115,8 @@ export default function TicketsTable({ tickets, params, onSortChange }: Props) {
   })
 
   return (
-    <Table className="mt-4" aria-busy={tickets === undefined}>
+    <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
+    <Table aria-busy={tickets === undefined}>
       <TableHeader>
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
@@ -119,6 +126,7 @@ export default function TicketsTable({ tickets, params, onSortChange }: Props) {
               return (
                 <TableHead
                   key={header.id}
+                  className={hiddenOnSmall[header.column.id]}
                   aria-sort={
                     header.column.getCanSort()
                       ? sorted === 'asc'
@@ -152,7 +160,7 @@ export default function TicketsTable({ tickets, params, onSortChange }: Props) {
           Array.from({ length: 5 }, (_, i) => (
             <TableRow key={i}>
               <TableCell>
-                <Skeleton className="h-4 w-56" />
+                <Skeleton className="h-4 w-40 sm:w-56" />
               </TableCell>
               <TableCell>
                 <Skeleton className="h-4 w-40" />
@@ -160,10 +168,10 @@ export default function TicketsTable({ tickets, params, onSortChange }: Props) {
               <TableCell>
                 <Skeleton className="h-5 w-16 rounded-full" />
               </TableCell>
-              <TableCell>
+              <TableCell className={hiddenOnSmall.category}>
                 <Skeleton className="h-4 w-28" />
               </TableCell>
-              <TableCell>
+              <TableCell className={hiddenOnSmall.createdAt}>
                 <Skeleton className="h-4 w-20" />
               </TableCell>
             </TableRow>
@@ -176,9 +184,9 @@ export default function TicketsTable({ tickets, params, onSortChange }: Props) {
           </TableRow>
         ) : (
           table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow key={row.id} className="transition-colors hover:bg-accent/60">
               {row.getAllCells().map((cell) => (
-                <TableCell key={cell.id}>
+                <TableCell key={cell.id} className={hiddenOnSmall[cell.column.id]}>
                   <table.FlexRender cell={cell} />
                 </TableCell>
               ))}
@@ -187,5 +195,6 @@ export default function TicketsTable({ tickets, params, onSortChange }: Props) {
         )}
       </TableBody>
     </Table>
+    </div>
   )
 }

@@ -9,8 +9,8 @@ export default function TicketsPage() {
   const { data, error } = useTickets(params)
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
-      <h1 className="text-3xl font-bold">Tickets</h1>
+    <main className="mx-auto max-w-5xl p-4 sm:p-8">
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Tickets</h1>
       <TicketFilters params={params} onChange={setParams} />
       {error ? (
         <p role="alert" className="mt-4 text-sm text-destructive">

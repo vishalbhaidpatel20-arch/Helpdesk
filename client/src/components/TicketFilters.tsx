@@ -11,9 +11,9 @@ type Props = {
 
 export default function TicketFilters({ params, onChange }: Props) {
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-4">
+    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
       <TicketSearch value={params.search} onChange={(search) => onChange({ search })} />
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 sm:justify-start">
         <Label htmlFor="ticket-status">Status</Label>
         <NativeSelect
           id="ticket-status"
@@ -30,7 +30,7 @@ export default function TicketFilters({ params, onChange }: Props) {
           ))}
         </NativeSelect>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 sm:justify-start">
         <Label htmlFor="ticket-category">Category</Label>
         <NativeSelect
           id="ticket-category"

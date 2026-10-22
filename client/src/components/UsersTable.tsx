@@ -27,13 +27,14 @@ export default function UsersTable() {
       {error}
     </p>
   ) : (
-    <Table className="mt-6" aria-busy={users === undefined}>
+    <div className="mt-6 overflow-hidden rounded-xl border bg-card shadow-sm">
+    <Table aria-busy={users === undefined}>
       <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
-          <TableHead>Created</TableHead>
+          <TableHead className="hidden sm:table-cell">Created</TableHead>
           <TableHead className="w-24">
             <span className="sr-only">Actions</span>
           </TableHead>
@@ -52,7 +53,7 @@ export default function UsersTable() {
               <TableCell>
                 <Skeleton className="h-5 w-16 rounded-full" />
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <Skeleton className="h-4 w-20" />
               </TableCell>
               <TableCell>
@@ -68,7 +69,7 @@ export default function UsersTable() {
           </TableRow>
         ) : (
           users.map((user) => (
-            <TableRow key={user.id}>
+            <TableRow key={user.id} className="transition-colors hover:bg-accent/60">
               <TableCell className="font-medium">{user.name}</TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>
@@ -76,7 +77,7 @@ export default function UsersTable() {
                   {user.role}
                 </Badge>
               </TableCell>
-              <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+              <TableCell className="hidden sm:table-cell">{new Date(user.createdAt).toLocaleDateString()}</TableCell>
               <TableCell>
                 <div className="flex justify-start">
                   <EditUserDialog user={user} />
@@ -89,5 +90,6 @@ export default function UsersTable() {
         )}
       </TableBody>
     </Table>
+    </div>
   )
 }

@@ -11,7 +11,7 @@ export default function TicketsPagination({ page, pageSize, total, onPageChange 
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
 
   return (
-    <nav aria-label="Pagination" className="mt-4 flex items-center justify-between text-sm">
+    <nav aria-label="Pagination" className="mt-4 flex flex-col items-center gap-3 text-sm sm:flex-row sm:justify-between">
       <span className="text-muted-foreground">
         {total} {total === 1 ? 'ticket' : 'tickets'}
       </span>

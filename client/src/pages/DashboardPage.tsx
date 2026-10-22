@@ -8,9 +8,9 @@ import { formatDuration } from '@/lib/tickets'
 // label on top and the large bold value below it
 function StatCard({ label, value }: { label: string; value: string | undefined }) {
   return (
-    <Card className="gap-3 border border-gray-200 bg-white p-6 text-black shadow-sm ring-0">
-      <p className="text-sm text-gray-500">{label}</p>
-      {value === undefined ? <Skeleton className="h-9 w-24" /> : <p className="text-3xl font-bold text-black">{value}</p>}
+    <Card className="gap-2 border border-t-4 border-gray-200 border-t-primary bg-gradient-to-b from-indigo-50/60 to-white p-4 sm:p-6 text-black shadow-sm ring-0 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+      <p className="text-xs font-medium tracking-wide text-gray-500 uppercase">{label}</p>
+      {value === undefined ? <Skeleton className="h-9 w-24" /> : <p className="text-2xl font-bold tracking-tight text-indigo-950 sm:text-3xl">{value}</p>}
     </Card>
   )
 }
@@ -19,8 +19,8 @@ export default function DashboardPage() {
   const { data, error } = useTicketStats()
 
   return (
-    <main className="mx-auto max-w-7xl p-8">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+    <main className="mx-auto max-w-7xl p-4 sm:p-8">
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
       {error ? (
         <p role="alert" className="mt-4 text-sm text-destructive">
           Failed to load the dashboard

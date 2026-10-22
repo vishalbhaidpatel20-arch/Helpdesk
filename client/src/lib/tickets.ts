@@ -9,6 +9,15 @@ export const statusLabels: Record<TicketStatus, string> = {
   [TicketStatus.CLOSED]: 'Closed',
 }
 
+// Badge colours per status (Tailwind utilities, layered over the Badge variant)
+export const statusColors: Record<TicketStatus, string> = {
+  [TicketStatus.NEW]: 'bg-amber-100 text-amber-800',
+  [TicketStatus.PROCESSING]: 'bg-amber-100 text-amber-800',
+  [TicketStatus.OPEN]: 'bg-black text-white',
+  [TicketStatus.RESOLVED]: 'bg-emerald-100 text-emerald-700',
+  [TicketStatus.CLOSED]: 'bg-slate-200 text-slate-700',
+}
+
 // M/D/YYYY, h:mm:ss AM/PM (fixed locale so the format doesn't depend on the browser's settings)
 export function formatDateTime(date: string) {
   return new Date(date).toLocaleString('en-US')

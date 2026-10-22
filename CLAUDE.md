@@ -83,6 +83,12 @@ Run from the repo root unless noted.
 - Off unless `SENTRY_DSN` (server, in `server/.env`) or `VITE_SENTRY_DSN` (client, in `client/.env`, see `client/.env.example`) is set; `SENTRY_ENVIRONMENT` is optional. Unit tests and the e2e server drop `SENTRY_DSN`.
 - Privacy: tickets and emails are customers' personal data and requests carry session cookies and the webhook secret. SDK v11 collects bodies, cookies, headers, query strings and local variables by default, so `dataCollection` turns them all off in both `instrument.ts` files, and on the server `scrubEvent` (`server/src/lib/scrubEvent.ts`) also strips everything but the request method and path. Don't add email content or addresses to `extra`/tags.
 
+## Deployment (Railway)
+
+- One Railway service plus Railway Postgres; see `DEPLOYMENT.md` for the steps. `Dockerfile` installs the workspaces, runs `prisma generate` and builds the client; `railway.json` runs `bun run --cwd server db:deploy` (`prisma migrate deploy`) before each deploy and health-checks `/api/health`. Env template: `server/.env.example`.
+- In production (`NODE_ENV=production`) `server/src/index.ts` also serves `client/dist` (hashed `/assets` cached for a year, `index.html` never cached, unknown non-API paths fall back to `index.html`), trusts one proxy hop, and sets a CSP that allows Sentry's ingest hosts. The client calls `/api` on its own origin, so `BETTER_AUTH_URL` and `CLIENT_URL` are the same public https URL there.
+- `VITE_*` values are baked in at build time (declared as `ARG`s in the Dockerfile). Railway cannot receive raw SMTP, so leave `SMTP_DOMAIN` unset there; mail arrives through IMAP polling or the webhook. Run a single replica (the IMAP poller and the pg-boss worker run inside the server process).
+
 ## Authentication
 
 Better Auth with email/password and database-backed sessions (Prisma adapter, PostgreSQL).
