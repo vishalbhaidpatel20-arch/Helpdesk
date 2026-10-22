@@ -20,7 +20,15 @@ export const auth = betterAuth({
   // Production only: dev and e2e runs sign in repeatedly and would trip the sign-in limit (3 per 10s)
   rateLimit: { enabled: process.env.NODE_ENV === 'production' },
   advanced: { useSecureCookies: process.env.NODE_ENV === 'production' },
-  trustedOrigins: [clientUrl],
+  // On Vercel preview deployments the site is served from the deployment's own URLs (e.g.
+  // helpdesk-git-<branch>.vercel.app), not CLIENT_URL; without them Better Auth rejects sign-in there as
+  // "Invalid origin". Vercel sets these system variables itself, so production and local runs are unchanged.
+  trustedOrigins: [
+    clientUrl,
+    ...[process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]
+      .filter((host): host is string => Boolean(host))
+      .map((host) => `https://${host}`),
+  ],
   databaseHooks: {
     session: {
       create: {

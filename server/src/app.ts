@@ -51,14 +51,22 @@ app.use('/api/webhooks', webhooksRouter)
 app.use('/api/cron', cronRouter)
 
 // Terminal error handler: log details server-side, never leak stack traces to clients
-app.use(async (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+app.use(async (err: unknown, _req: Request, res: Response, next: NextFunction) => {
   console.error(err)
   // Report server faults to Sentry, but not mistakes by the caller (e.g. malformed JSON, which carries a 4xx status)
   const status = typeof err === 'object' && err !== null && 'status' in err ? Number(err.status) : 500
-  if (!(status >= 400 && status < 500)) {
+  const isClientError = status >= 400 && status < 500
+  if (!isClientError) {
     Sentry.captureException(err)
     // A serverless function can be frozen right after responding, so send the event before that
     if (isVercel) await Sentry.flush(2000)
+  }
+  // A response that has already started can't get a new status; let Express close the connection
+  if (res.headersSent) return next(err)
+  // Caller mistakes (malformed JSON, body too large) keep their 4xx status instead of looking like a server fault
+  if (isClientError) {
+    res.status(status).json({ error: status === 413 ? 'Request body is too large' : 'Invalid request' })
+    return
   }
   res.status(500).json({ error: 'Internal server error' })
 })
