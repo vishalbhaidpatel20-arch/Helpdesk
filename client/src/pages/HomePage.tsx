@@ -26,7 +26,7 @@ const features: { icon: LucideIcon; color: string; title: string; description: s
     icon: TagsIcon,
     color: 'from-violet-500 to-purple-500',
     title: 'Smart classification',
-    description: 'Claude sorts every ticket into General Question, Technical Question or Refund Request.',
+    description: 'Gemini sorts every ticket into General Question, Technical Question or Refund Request.',
   },
   {
     icon: BotIcon,
@@ -87,7 +87,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-slate-600 lg:mx-0">
-              Turn support emails into organized tickets, let Claude answer the easy ones, and give your team more time
+              Turn support emails into organized tickets, let Gemini answer the easy ones, and give your team more time
               for the customers who need a human.
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
