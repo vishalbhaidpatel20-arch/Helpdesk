@@ -1,7 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { LayoutDashboardIcon, TicketIcon, UsersIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router'
-import Footer from '@/components/Footer'
+import Footer, { MobileCopyright } from '@/components/Footer'
 import Logo from '@/components/Logo'
 import { Button } from '@/components/ui/button'
 import { Role } from '@/lib/roles'
@@ -27,6 +28,25 @@ function NavItem({ to, children }: { to: string; children: ReactNode }) {
   )
 }
 
+// Bottom navigation button for small screens: an icon in a round button, filled when its section is current. The
+// label is only for screen readers and the hover tooltip.
+function BottomNavItem({ to, icon: Icon, children }: { to: string; icon: typeof TicketIcon; children: string }) {
+  return (
+    <NavLink to={to} aria-label={children} title={children} className="flex flex-1 items-center justify-center py-2">
+      {({ isActive }) => (
+        <span
+          className={cn(
+            'flex size-11 items-center justify-center rounded-full transition-colors',
+            isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent',
+          )}
+        >
+          <Icon className="size-5" aria-hidden />
+        </span>
+      )}
+    </NavLink>
+  )
+}
+
 // Layout for authenticated pages: renders the nav bar. Rendered inside ProtectedRoute, which guarantees a session.
 export default function Layout() {
   const navigate = useNavigate()
@@ -43,12 +63,12 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/40">
+    <div className="flex min-h-dvh flex-col bg-muted/40 pb-26 sm:pb-0">
       <nav className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b bg-background/80 px-4 py-3 sm:px-6 shadow-sm backdrop-blur">
         <Link to="/" aria-label="Helpdesk home" className="shrink-0 transition-opacity hover:opacity-80">
           <Logo className="text-lg" />
         </Link>
-        <div className="order-last flex w-full items-center gap-1 overflow-x-auto sm:order-none sm:mr-auto sm:ml-4 sm:w-auto sm:gap-2">
+        <div className="mr-auto ml-4 hidden items-center gap-2 sm:flex">
           <NavItem to="/dashboard">Dashboard</NavItem>
           <NavItem to="/tickets">Tickets</NavItem>
           {session.user.role === Role.ADMIN && <NavItem to="/users">Users</NavItem>}
@@ -62,6 +82,24 @@ export default function Layout() {
       </nav>
       <Outlet />
       <Footer />
+      <MobileCopyright />
+      {/* Phones: the section links live in a bottom bar instead of the header */}
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-0 bottom-0 z-10 flex h-16 box-content border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-sm backdrop-blur sm:hidden"
+      >
+        <BottomNavItem to="/dashboard" icon={LayoutDashboardIcon}>
+          Dashboard
+        </BottomNavItem>
+        <BottomNavItem to="/tickets" icon={TicketIcon}>
+          Tickets
+        </BottomNavItem>
+        {session.user.role === Role.ADMIN && (
+          <BottomNavItem to="/users" icon={UsersIcon}>
+            Users
+          </BottomNavItem>
+        )}
+      </nav>
     </div>
   )
 }
