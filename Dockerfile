@@ -1,4 +1,5 @@
-# Builds the client, then runs the API (which also serves the built client) on Bun. Used by Railway (see railway.json).
+# Optional self-hosting image (not used on Vercel, see DEPLOYMENT.md): builds the client, then runs the API, which also
+# serves the built client, on Bun.
 FROM oven/bun:1.4
 
 WORKDIR /app
@@ -13,7 +14,7 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Vite inlines VITE_* values at build time, so the client's Sentry settings must be available here.
-# Railway passes service variables with these names into the build.
+# Pass them as build args (--build-arg) when building the image.
 ARG VITE_SENTRY_DSN
 ARG VITE_SENTRY_ENVIRONMENT
 
@@ -22,8 +23,8 @@ RUN DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
   && bun run --cwd client build
 
 ENV NODE_ENV=production
-# Railway sets PORT at runtime; 3000 is the fallback
+# PORT can be set at runtime; 3000 is the fallback
 EXPOSE 3000
 
-# Database migrations run before each deploy (preDeployCommand in railway.json), not here
+# Database migrations are not run here: apply them with `bun run --cwd server db:deploy` before starting
 CMD ["bun", "run", "--cwd", "server", "start"]

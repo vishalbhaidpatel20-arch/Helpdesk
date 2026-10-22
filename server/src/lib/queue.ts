@@ -1,4 +1,5 @@
 import { TicketStatus } from '@helpdesk/core'
+import { waitUntil } from '@vercel/functions'
 import { PgBoss } from 'pg-boss'
 import { prisma } from '../db'
 import { processTicket } from './processTicket'
@@ -28,6 +29,12 @@ export function stopQueue() {
 
 // Never throws: a queue problem must not fail the request that created the ticket
 export async function enqueueProcessTicket(ticketId: number) {
+  // Vercel functions cannot keep a pg-boss worker running, so the job runs in the same function after the response
+  // has been sent. processTicket opens the ticket for the agents on any failure, so nothing stays hidden.
+  if (process.env.VERCEL) {
+    waitUntil(processTicket(ticketId).catch((err) => reportError(`Ticket ${ticketId}: processing failed`, err)))
+    return
+  }
   try {
     await boss.send(PROCESS_TICKET_QUEUE, { ticketId } satisfies ProcessTicketJob)
   } catch (err) {

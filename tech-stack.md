@@ -16,4 +16,4 @@ Claude API (Anthropic) for ticket classification, summaries, and suggested repli
 # Email
 SendGrid or Mailgun for outbound replies and inbound webhooks
 # Deployment
-Docker + cloud provider (AWS, Railway, Fly.io, etc.)
+Vercel (client on the CDN, API as a Vercel Function on the Bun runtime) + hosted PostgreSQL
