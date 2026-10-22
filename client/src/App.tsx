@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import DashboardPage from './pages/DashboardPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import NotFoundPage from './pages/NotFoundPage'
 import TicketDetailPage from './pages/TicketDetailPage'
 import TicketsPage from './pages/TicketsPage'
 import UsersPage from './pages/UsersPage'
@@ -23,6 +24,7 @@ export default function App() {
             <Route element={<AdminRoute />}>
               <Route path="/users" element={<UsersPage />} />
             </Route>
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>
       </Routes>
