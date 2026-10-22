@@ -7,25 +7,26 @@ const year = new Date().getFullYear()
 
 const copyright = `© ${year} Helpdesk. All rights reserved.`
 
-// Desktop footer: sits right under the content (it is not pushed to the bottom of the screen on short pages). Phones
-// use MobileCopyright and the bottom navigation bar instead.
-export default function Footer() {
+// Desktop footer: a slim bar fixed to the bottom of the screen, so it stays put while the page scrolls. Layout reserves
+// room for it (sm:pb-24). Phones use MobileCopyright and the bottom navigation bar instead.
+export default function Footer({ showSections = true }: { showSections?: boolean }) {
   return (
-    <footer className="hidden border-t bg-background sm:block">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <div className="space-y-2">
-          <Logo className="text-lg" />
-          <p className="max-w-xs text-sm text-muted-foreground">
-            AI-powered ticket management: every customer email answered faster.
-          </p>
+    <footer className="fixed inset-x-0 bottom-0 z-10 hidden border-t bg-background/95 backdrop-blur sm:block">
+      <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between gap-6 px-4 sm:px-8">
+        <div className="flex items-center gap-3">
+          <Logo className="text-base" />
+          <span className="text-xs text-muted-foreground">{copyright}</span>
         </div>
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2">
+        <nav aria-label="Footer" className="flex gap-x-6">
           <AppLink to="/">Home</AppLink>
-          <AppLink to="/dashboard">Dashboard</AppLink>
-          <AppLink to="/tickets">Tickets</AppLink>
+          {showSections && (
+            <>
+              <AppLink to="/dashboard">Dashboard</AppLink>
+              <AppLink to="/tickets">Tickets</AppLink>
+            </>
+          )}
         </nav>
       </div>
-      <div className="border-t py-4 text-center text-xs text-muted-foreground">{copyright}</div>
     </footer>
   )
 }

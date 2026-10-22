@@ -29,7 +29,7 @@ const ticketSelect = {
 ticketsRouter.get('/', requireAuth, async (req, res) => {
   const query = parseQuery(ticketListQuerySchema, req, res)
   if (!query) return
-  const { status, category, search, sort, order, page, pageSize } = query
+  const { status, category, assignee, search, sort, order, page, pageSize } = query
 
   // Case-insensitive substring match on the text fields. Prisma does not escape the LIKE wildcards
   // (% and _) or the escape character itself, so do it here to match them literally.
@@ -40,6 +40,7 @@ ticketsRouter.get('/', requireAuth, async (req, res) => {
     // Tickets the AI is still working on stay out of the list (and its total)
     status: status ?? { notIn: [TicketStatus.NEW, TicketStatus.PROCESSING] },
     category,
+    ...(assignee === 'me' && { assignedToId: (res.locals.session as Session).user.id }),
     ...(contains && {
       OR: [
         { subject: contains },

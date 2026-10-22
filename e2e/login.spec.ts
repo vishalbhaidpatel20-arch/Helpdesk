@@ -12,10 +12,10 @@ test.describe('login', () => {
     await page.goto('/login')
   })
 
-  test('admin signs in and lands on home with name and Sign out in the nav', async ({ page }) => {
+  test('admin signs in and lands on the dashboard with name and Sign out in the nav', async ({ page }) => {
     await fill(page, ADMIN.email, ADMIN.password)
-    await expect(page).toHaveURL('/')
-    await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+    await expect(page).toHaveURL('/dashboard')
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     await expect(page.getByText(ADMIN.name, { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   })
@@ -81,14 +81,14 @@ test.describe('login', () => {
 
   test('email is case-insensitive', async ({ page }) => {
     await fill(page, ADMIN.email.toUpperCase(), ADMIN.password)
-    await expect(page).toHaveURL('/')
+    await expect(page).toHaveURL('/dashboard')
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   })
 
   test('surrounding whitespace in the email does not break sign-in', async ({ page }) => {
     // type=email inputs strip leading/trailing whitespace on value sanitization
     await fill(page, `  ${ADMIN.email}  `, ADMIN.password)
-    await expect(page).toHaveURL('/')
+    await expect(page).toHaveURL('/dashboard')
   })
 
   test('surrounding whitespace in the password is not trimmed', async ({ page }) => {
@@ -102,7 +102,7 @@ test.describe('login', () => {
     await expect(page.getByRole('alert')).toBeVisible()
     await page.getByLabel('Password').fill(ADMIN.password)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page).toHaveURL('/')
+    await expect(page).toHaveURL('/dashboard')
   })
 
   test('submit button is disabled and relabelled while the request is pending', async ({ page }) => {
@@ -112,7 +112,7 @@ test.describe('login', () => {
     })
     await fill(page, ADMIN.email, ADMIN.password)
     await expect(page.getByRole('button', { name: 'Signing in...' })).toBeDisabled()
-    await expect(page).toHaveURL('/')
+    await expect(page).toHaveURL('/dashboard')
   })
 
   test('network failure keeps the user on /login with the form usable', async ({ page }) => {

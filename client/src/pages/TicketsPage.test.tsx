@@ -5,9 +5,12 @@ import { MemoryRouter, useLocation } from 'react-router'
 import { TicketCategory, TicketStatus, type Ticket, type TicketListResponse } from '@helpdesk/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
+import { Role } from '@/lib/roles'
 import TicketsPage from './TicketsPage'
 
 vi.mock('@/lib/api', () => ({ api: { get: vi.fn() } }))
+const useSession = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/auth-client', () => ({ authClient: { useSession } }))
 
 const get = vi.mocked(api.get)
 
@@ -81,6 +84,7 @@ function subjectsInOrder() {
 describe('TicketsPage', () => {
   beforeEach(() => {
     get.mockReset()
+    useSession.mockReturnValue({ data: { user: { role: Role.ADMIN } } })
   })
 
   it('shows the heading and requests the tickets endpoint', async () => {
@@ -550,6 +554,39 @@ describe('TicketsPage', () => {
       expect(screen.getByText('Page 1 of 1')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
       expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+    })
+  })
+
+  describe('assignee filter', () => {
+    it('shows an agent only their own tickets by default', async () => {
+      useSession.mockReturnValue({ data: { user: { role: Role.AGENT } } })
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage()
+
+      await screen.findByText('Refund please')
+      expect(lastParams()).toMatchObject({ assignee: 'me' })
+      expect(screen.getByLabelText('Show')).toHaveValue('me')
+    })
+
+    it('lets an agent switch to all tickets, which is kept in the URL', async () => {
+      useSession.mockReturnValue({ data: { user: { role: Role.AGENT } } })
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage()
+      await screen.findByText('Refund please')
+
+      fireEvent.change(screen.getByLabelText('Show'), { target: { value: 'all' } })
+
+      await waitFor(() => expect(lastParams()).toMatchObject({ assignee: 'all', page: 1 }))
+      expect(urlParams().get('assignee')).toBe('all')
+    })
+
+    it('shows an admin every ticket by default', async () => {
+      get.mockResolvedValue(listResponse([newest]))
+      renderPage()
+
+      await screen.findByText('Refund please')
+      expect(lastParams()).toMatchObject({ assignee: 'all' })
+      expect(screen.getByLabelText('Show')).toHaveValue('all')
     })
   })
 })

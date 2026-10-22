@@ -53,9 +53,18 @@ export const DEFAULT_TICKET_PAGE_SIZE = 20
 export const MAX_TICKET_PAGE_SIZE = 100
 export const MAX_TICKET_SEARCH_LENGTH = 200
 
+// 'me' limits tickets (and the dashboard numbers) to those assigned to the signed-in user; missing or 'all' means every ticket
+export const TICKET_ASSIGNEE_FILTERS = ['me', 'all'] as const
+export type TicketAssigneeFilter = (typeof TICKET_ASSIGNEE_FILTERS)[number]
+const assigneeFilterSchema = z.enum(TICKET_ASSIGNEE_FILTERS, { error: 'Invalid assignee' }).optional()
+
+// Query string of GET /api/stats
+export const statsQuerySchema = z.object({ assignee: assigneeFilterSchema })
+
 export const ticketListQuerySchema = z.object({
   status: z.enum(AGENT_TICKET_STATUSES, { error: 'Invalid status' }).optional(),
   category: z.enum(TicketCategory, { error: 'Invalid category' }).optional(),
+  assignee: assigneeFilterSchema,
   // Matches subject, sender name, sender email and message text; blank means no search
   search: z
     .string()

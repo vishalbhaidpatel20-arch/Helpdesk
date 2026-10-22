@@ -17,7 +17,7 @@ test.describe('admin', () => {
 
 test.describe('agent', () => {
   test('does not see the Users link', async ({ agentPage: page }) => {
-    await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0)
   })
 

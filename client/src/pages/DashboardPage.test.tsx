@@ -1,6 +1,8 @@
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { AxiosError, type AxiosResponse } from 'axios'
 import type { TicketStats } from '@helpdesk/core'
+import { MemoryRouter } from 'react-router'
+import { Role } from '@/lib/roles'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
 import { formatDuration } from '@/lib/tickets'
@@ -10,6 +12,12 @@ import DashboardPage from './DashboardPage'
 vi.mock('@/lib/api', () => ({ api: { get: vi.fn() } }))
 
 const get = vi.mocked(api.get)
+const useSession = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/auth-client', () => ({ authClient: { useSession } }))
+
+function mockApi(statsResult: Promise<unknown> | unknown) {
+  get.mockImplementation(() => Promise.resolve(statsResult) as Promise<never>)
+}
 
 const stats: TicketStats = {
   total: 1200,
@@ -29,27 +37,40 @@ function valueOf(label: string) {
 describe('DashboardPage', () => {
   beforeEach(() => {
     get.mockReset()
+    useSession.mockReturnValue({ data: { user: { role: Role.ADMIN } } })
   })
 
   it('shows skeletons while loading', () => {
     get.mockReturnValue(new Promise(() => {}))
-    const { container } = renderWithQuery(<DashboardPage />)
+    const { container } = renderWithQuery(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
 
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
     expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(6)
   })
 
   it('requests the stats', async () => {
-    get.mockResolvedValue({ data: stats })
-    renderWithQuery(<DashboardPage />)
+    mockApi({ data: stats })
+    renderWithQuery(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
 
     await screen.findByText('1,200')
-    expect(get).toHaveBeenCalledWith('/stats', expect.objectContaining({ signal: expect.anything() }))
+    expect(get).toHaveBeenCalledWith('/stats', expect.objectContaining({ params: { assignee: 'all' }, signal: expect.anything() }))
   })
 
   it('shows the five statistics', async () => {
-    get.mockResolvedValue({ data: stats })
-    renderWithQuery(<DashboardPage />)
+    mockApi({ data: stats })
+    renderWithQuery(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
     await screen.findByText('1,200')
 
     expect(valueOf('Total tickets')).toHaveTextContent('1,200')
@@ -60,8 +81,12 @@ describe('DashboardPage', () => {
   })
 
   it('shows the tickets-per-day chart below the statistics', async () => {
-    get.mockResolvedValue({ data: stats })
-    renderWithQuery(<DashboardPage />)
+    mockApi({ data: stats })
+    renderWithQuery(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
 
     const chart = await screen.findByRole('img', { name: /tickets created per day/i })
     const section = screen.getByRole('region', { name: 'Ticket statistics' })
@@ -69,8 +94,12 @@ describe('DashboardPage', () => {
   })
 
   it('shows a dash for the average when no ticket has been resolved', async () => {
-    get.mockResolvedValue({ data: { ...stats, resolvedByAi: 0, resolvedByAiPercent: 0, averageResolutionSeconds: null } })
-    renderWithQuery(<DashboardPage />)
+    mockApi({ data: { ...stats, resolvedByAi: 0, resolvedByAiPercent: 0, averageResolutionSeconds: null } })
+    renderWithQuery(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
     await screen.findByText('1,200')
 
     expect(valueOf('Average resolution time')).toHaveTextContent('—')
@@ -79,9 +108,13 @@ describe('DashboardPage', () => {
 
   it('shows an error when the stats cannot be loaded', async () => {
     get.mockRejectedValue(new AxiosError('boom', undefined, undefined, undefined, { status: 500 } as AxiosResponse))
-    renderWithQuery(<DashboardPage />)
+    renderWithQuery(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load the dashboard')
+    expect(await screen.findByText('Failed to load the dashboard')).toBeInTheDocument()
   })
 })
 
@@ -95,5 +128,36 @@ describe('formatDuration', () => {
     [59.6, '1m'],
   ])('formats %p seconds as %p', (seconds, expected) => {
     expect(formatDuration(seconds)).toBe(expected)
+  })
+
+  describe('assignee filter', () => {
+    it('shows an agent the numbers for their own tickets by default', async () => {
+      useSession.mockReturnValue({ data: { user: { role: Role.AGENT } } })
+      mockApi({ data: stats })
+      renderWithQuery(
+        <MemoryRouter>
+          <DashboardPage />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText('1,200')
+      expect(get).toHaveBeenCalledWith('/stats', expect.objectContaining({ params: { assignee: 'me' } }))
+      expect(screen.getByLabelText('Show')).toHaveValue('me')
+    })
+
+    it('reloads the numbers when the selection changes', async () => {
+      useSession.mockReturnValue({ data: { user: { role: Role.AGENT } } })
+      mockApi({ data: stats })
+      renderWithQuery(
+        <MemoryRouter>
+          <DashboardPage />
+        </MemoryRouter>,
+      )
+      await screen.findByText('1,200')
+
+      fireEvent.change(screen.getByLabelText('Show'), { target: { value: 'all' } })
+
+      await waitFor(() => expect(get).toHaveBeenLastCalledWith('/stats', expect.objectContaining({ params: { assignee: 'all' } })))
+    })
   })
 })

@@ -46,7 +46,7 @@ test.describe('ticket list', () => {
       await postTicket(request, `${prefix} #${n}`)
     }
 
-    await agentPage.goto('/tickets')
+    await agentPage.goto('/tickets?assignee=all')
     await expect(agentPage.getByRole('heading', { name: 'Tickets' })).toBeVisible()
     await expect(receivedHeader(agentPage)).toHaveAttribute('aria-sort', 'descending')
     await expect(subjectHeader(agentPage)).toHaveAttribute('aria-sort', 'none')
@@ -60,7 +60,7 @@ test.describe('ticket list', () => {
       await Promise.all(subjects.slice(i, i + 7).map((s) => postTicket(request, s)))
     }
 
-    await agentPage.goto('/tickets?sort=subject&order=asc')
+    await agentPage.goto('/tickets?assignee=all&sort=subject&order=asc')
     const nav = pagination(agentPage)
     await expect(nav.getByText(/^Page 1 of \d+$/)).toBeVisible()
     const label = (await nav.getByText(/^Page 1 of \d+$/).textContent()) ?? ''
@@ -78,7 +78,7 @@ test.describe('ticket list', () => {
     await nav.getByRole('button', { name: 'Previous' }).click()
     await expect(nav.getByText(`Page 1 of ${pageCount}`)).toBeVisible()
 
-    await agentPage.goto(`/tickets?sort=subject&order=asc&page=${pageCount}`)
+    await agentPage.goto(`/tickets?assignee=all&sort=subject&order=asc&page=${pageCount}`)
     await expect(nav.getByText(`Page ${pageCount} of ${pageCount}`)).toBeVisible()
     await expect(nav.getByRole('button', { name: 'Next' })).toBeDisabled()
     await expect(nav.getByRole('button', { name: 'Previous' })).toBeEnabled()
@@ -92,7 +92,7 @@ test.describe('ticket list', () => {
     await postTicket(request, `Search A ${tok}`, { text: `Please find needle-${tok} in this message.` })
     await postTicket(request, `Search B ${tok}`, { senderEmail: `findme-${tok}@example.com` })
 
-    await agentPage.goto('/tickets')
+    await agentPage.goto('/tickets?assignee=all')
     const search = agentPage.getByRole('searchbox', { name: 'Search tickets' })
     const rowA = rowsWith(agentPage, `Search A ${tok}`)
     const rowB = rowsWith(agentPage, `Search B ${tok}`)
@@ -118,5 +118,44 @@ test.describe('ticket list', () => {
     await expect(agentPage.getByText('No tickets found')).toBeVisible()
     await expect(rowA).toHaveCount(0)
     await expect(rowB).toHaveCount(0)
+  })
+})
+
+test.describe('ticket list API assignee filter', () => {
+  test('assignee=me returns only the signed-in agent\'s tickets, assignee=all and the default return more', async ({
+    request,
+    agentPage,
+  }) => {
+    const tok = uniqueSuffix()
+    await postTicket(request, `Mine ${tok}`)
+    await postTicket(request, `Unassigned ${tok}`)
+
+    const api = agentPage.request
+    const search = encodeURIComponent(tok)
+    const list = async (query: string) => {
+      const res = await api.get(`/api/tickets?search=${search}${query}`)
+      expect(res.status()).toBe(200)
+      return (await res.json()) as { tickets: { id: number; subject: string }[]; total: number }
+    }
+
+    const { tickets: all } = await list('&assignee=all')
+    const mine = all.find((t) => t.subject === `Mine ${tok}`)!
+    expect(all).toHaveLength(2)
+
+    const session = await (await api.get('/api/auth/get-session')).json()
+    const patch = await api.patch(`/api/tickets/${mine.id}`, { data: { assignedToId: session.user.id } })
+    expect(patch.status()).toBe(200)
+
+    const me = await list('&assignee=me')
+    expect(me.tickets.map((t) => t.subject)).toEqual([`Mine ${tok}`])
+    expect(me.total).toBe(1)
+
+    expect((await list('&assignee=all')).total).toBe(2)
+    expect((await list('')).total).toBe(2)
+  })
+
+  test('an invalid assignee value is rejected with 400', async ({ agentPage }) => {
+    const res = await agentPage.request.get('/api/tickets?assignee=everyone')
+    expect(res.status()).toBe(400)
   })
 })

@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { Navigate, useNavigate } from 'react-router'
+import { Navigate, useLocation, useNavigate } from 'react-router'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,8 +16,15 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>
 
+// The page ProtectedRoute sent the user away from, or the dashboard. Only app-internal paths are accepted.
+function useReturnPath() {
+  const from = (useLocation().state as { from?: unknown } | null)?.from
+  return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/dashboard'
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
+  const returnPath = useReturnPath()
   const { data: session, isPending } = authClient.useSession()
   const {
     register,
@@ -27,7 +34,7 @@ export default function LoginPage() {
   } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) })
 
   if (isPending) return null
-  if (session) return <Navigate to="/" replace />
+  if (session) return <Navigate to={returnPath} replace />
 
   async function onSubmit(values: LoginValues) {
     const { error } = await authClient.signIn.email(values)
@@ -35,7 +42,7 @@ export default function LoginPage() {
       setError('root', { message: error.message || 'Unable to sign in' })
       return
     }
-    navigate('/', { replace: true })
+    navigate(returnPath, { replace: true })
   }
 
   return (

@@ -14,6 +14,18 @@ export default function TicketFilters({ params, onChange }: Props) {
     <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
       <TicketSearch value={params.search} onChange={(search) => onChange({ search })} />
       <div className="flex items-center justify-between gap-2 sm:justify-start">
+        <Label htmlFor="ticket-assignee">Show</Label>
+        <NativeSelect
+          id="ticket-assignee"
+          className="w-44"
+          value={params.assignee ?? 'all'}
+          onChange={(e) => onChange({ assignee: e.target.value as 'me' | 'all' })}
+        >
+          <option value="me">My tickets</option>
+          <option value="all">All tickets</option>
+        </NativeSelect>
+      </div>
+      <div className="flex items-center justify-between gap-2 sm:justify-start">
         <Label htmlFor="ticket-status">Status</Label>
         <NativeSelect
           id="ticket-status"

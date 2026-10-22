@@ -8,9 +8,9 @@ import {
   TagsIcon,
   type LucideIcon,
 } from 'lucide-react'
-import { Link } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import WhatsAppButton from '@/components/WhatsAppButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
 import { authClient } from '@/lib/auth-client'
@@ -92,14 +92,11 @@ export default function HomePage() {
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
               <Button
-                asChild
+                type="button"
                 size="lg"
                 className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/40 sm:w-auto"
               >
-                <Link to="/tickets">View tickets</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="w-full bg-white/80 sm:w-auto">
-                <Link to="/dashboard">Open dashboard</Link>
+                Book a demo
               </Button>
             </div>
             <div className="mt-8 inline-flex items-center gap-2 text-sm text-slate-500" aria-busy={isPending}>
@@ -196,13 +193,14 @@ export default function HomePage() {
         <div className="rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-600 px-6 py-12 text-center text-white shadow-xl shadow-indigo-500/20 sm:px-12">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Ready to clear your queue?</h2>
           <p className="mx-auto mt-3 max-w-xl text-indigo-100">
-            Jump into the ticket list and see what the AI has already handled for you today.
+            See how Helpdesk can answer your customers faster.
           </p>
-          <Button asChild size="lg" className="mt-6 bg-white text-indigo-700 hover:bg-indigo-50">
-            <Link to="/tickets">Go to tickets</Link>
+          <Button type="button" size="lg" className="mt-6 bg-white text-indigo-700 hover:bg-indigo-50">
+            Book a demo
           </Button>
         </div>
       </section>
+      <WhatsAppButton />
     </main>
   )
 }

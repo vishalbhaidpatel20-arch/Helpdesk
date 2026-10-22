@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import type { TicketStats } from '@helpdesk/core'
+import type { TicketAssigneeFilter, TicketStats } from '@helpdesk/core'
 import { api } from '@/lib/api'
 
-export function useTicketStats() {
+export function useTicketStats(assignee: TicketAssigneeFilter) {
   return useQuery({
-    queryKey: ['ticket-stats'],
+    queryKey: ['ticket-stats', assignee],
     queryFn: async ({ signal }) => {
-      const { data } = await api.get<TicketStats>('/stats', { signal })
+      const { data } = await api.get<TicketStats>('/stats', { params: { assignee }, signal })
       return data
     },
   })

@@ -25,13 +25,24 @@ describe('HomePage', () => {
     get.mockReset()
   })
 
-  it('greets the user and links to tickets and the dashboard', () => {
+  it('greets the user and offers a Book a demo button instead of section shortcuts', () => {
     get.mockReturnValue(new Promise(() => {}))
     renderHome()
 
     expect(screen.getByRole('heading', { level: 1, name: 'Welcome home, Ada' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'View tickets' })).toHaveAttribute('href', '/tickets')
-    expect(screen.getByRole('link', { name: 'Open dashboard' })).toHaveAttribute('href', '/dashboard')
+    expect(screen.getAllByRole('button', { name: 'Book a demo' }).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('link', { name: 'View tickets' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Open dashboard' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Go to tickets' })).not.toBeInTheDocument()
+  })
+
+  it('offers a WhatsApp chat link that opens in a new tab', () => {
+    get.mockReturnValue(new Promise(() => {}))
+    renderHome()
+
+    const link = screen.getByRole('link', { name: 'Chat with us on WhatsApp' })
+    expect(link).toHaveAttribute('href', expect.stringMatching(/^https:\/\/wa\.me\/\d*\?text=/))
+    expect(link).toHaveAttribute('target', '_blank')
   })
 
   it('lists the app features and how it works', () => {

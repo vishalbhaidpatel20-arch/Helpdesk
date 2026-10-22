@@ -292,6 +292,19 @@ const tickets = Array.from({ length: TOTAL }, (_, i) => {
 })
 
 const { count } = await prisma.ticket.createMany({ data: tickets, skipDuplicates: true })
+
+// Dashboard numbers need resolution data: handled tickets get a resolvedAt, and about a third of them were
+// answered by the AI (a reply with no author). Runs on every seed so tickets seeded earlier are filled in too.
+await prisma.$executeRaw`
+  UPDATE "ticket" SET "resolvedAt" = "updatedAt"
+  WHERE "messageId" LIKE '%@seed.helpdesk.local>' AND "status" IN ('RESOLVED', 'CLOSED') AND "resolvedAt" IS NULL`
+await prisma.$executeRaw`
+  INSERT INTO "reply" ("ticketId", "authorId", "body", "createdAt")
+  SELECT t."id", NULL, 'Hi, thanks for reaching out. Based on our knowledge base, this should resolve your issue. Please reply if it does not.', t."resolvedAt"
+  FROM "ticket" t
+  WHERE t."messageId" LIKE '%@seed.helpdesk.local>' AND t."status" IN ('RESOLVED', 'CLOSED')
+    AND t."id" % 3 = 0 AND NOT EXISTS (SELECT 1 FROM "reply" r WHERE r."ticketId" = t."id")`
+
 const dbName = new URL(process.env.DATABASE_URL ?? 'postgresql://unknown/unknown').pathname.slice(1)
 console.log(`Seeded ${count} new tickets into "${dbName}" (${TOTAL - count} already existed)`)
 

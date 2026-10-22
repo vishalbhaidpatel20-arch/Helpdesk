@@ -21,6 +21,8 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
   },
   server: {
+    // The API only trusts CLIENT_URL (http://localhost:5173): on another port sign-out is rejected with 403
+    strictPort: true,
     proxy: {
       '/api': process.env.API_URL ?? 'http://localhost:3000',
     },

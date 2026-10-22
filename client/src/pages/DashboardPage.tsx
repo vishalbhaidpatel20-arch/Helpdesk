@@ -1,4 +1,9 @@
+import { TICKET_ASSIGNEE_FILTERS, type TicketAssigneeFilter } from '@helpdesk/core'
+import { useSearchParams } from 'react-router'
 import { Card } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { NativeSelect } from '@/components/ui/native-select'
+import { useDefaultAssignee } from '@/hooks/useDefaultAssignee'
 import TicketsPerDayChart from '@/components/TicketsPerDayChart'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTicketStats } from '@/hooks/useTicketStats'
@@ -16,11 +21,30 @@ function StatCard({ label, value }: { label: string; value: string | undefined }
 }
 
 export default function DashboardPage() {
-  const { data, error } = useTicketStats()
+  const defaultAssignee = useDefaultAssignee()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requested = searchParams.get('assignee')
+  // Kept in the URL like the ticket list's filters (an invalid value falls back to the default)
+  const assignee: TicketAssigneeFilter = TICKET_ASSIGNEE_FILTERS.find((value) => value === requested) ?? defaultAssignee
+  const { data, error } = useTicketStats(assignee)
 
   return (
     <main className="mx-auto w-full max-w-7xl p-4 sm:p-8">
-      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="dashboard-assignee">Show</Label>
+          <NativeSelect
+            id="dashboard-assignee"
+            className="w-44"
+            value={assignee}
+            onChange={(e) => setSearchParams({ assignee: e.target.value })}
+          >
+            <option value="me">My tickets</option>
+            <option value="all">All tickets</option>
+          </NativeSelect>
+        </div>
+      </div>
       {error ? (
         <p role="alert" className="mt-4 text-sm text-destructive">
           Failed to load the dashboard

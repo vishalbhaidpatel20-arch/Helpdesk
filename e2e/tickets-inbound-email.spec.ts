@@ -21,7 +21,8 @@ function makeEmail(overrides: Record<string, unknown> = {}) {
 }
 
 async function expectTicketRow(page: Page, email: { subject: unknown; senderName: unknown; senderEmail: unknown }) {
-  await page.goto('/tickets')
+  // Agents default to "My tickets"; new inbound tickets are unassigned, so show all
+  await page.goto('/tickets?assignee=all')
   const row = page.getByRole('row').filter({ hasText: String(email.subject) })
   await expect(row).toHaveCount(1)
   await expect(row.getByText(String(email.subject))).toBeVisible()
@@ -61,7 +62,7 @@ test.describe('inbound email webhook', () => {
     expect(second.status()).toBe(200)
     expect((await second.json()).ticket.id).toBe(firstId)
 
-    await agentPage.goto('/tickets')
+    await agentPage.goto('/tickets?assignee=all')
     await expect(agentPage.getByRole('row').filter({ hasText: email.subject })).toHaveCount(1)
   })
 
@@ -73,7 +74,7 @@ test.describe('inbound email webhook', () => {
     })
     expect(res.status()).toBe(401)
 
-    await agentPage.goto('/tickets')
+    await agentPage.goto('/tickets?assignee=all')
     await expect(agentPage.getByRole('columnheader', { name: 'Subject' })).toBeVisible()
     await expect(agentPage.getByRole('row').filter({ hasText: email.subject })).toHaveCount(0)
   })
