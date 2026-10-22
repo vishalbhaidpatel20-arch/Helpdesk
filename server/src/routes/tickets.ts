@@ -5,6 +5,7 @@ import { prisma } from '../db'
 import { aiErrorMessage } from '../lib/aiError'
 import { parseBody, parseQuery } from '../lib/parseBody'
 import { polishReply } from '../lib/polishReply'
+import { reportError } from '../lib/reportError'
 import { sendReplyEmail } from '../lib/sendEmail'
 import { summarizeTicket } from '../lib/summarizeTicket'
 import { requireAuth, type Session } from '../middleware/auth'
@@ -162,8 +163,8 @@ ticketsRouter.post('/:id/replies/polish', requireAuth, async (req, res) => {
   try {
     res.json({ body: await polishReply(ticket, body.body, (res.locals.session as Session).user.name) })
   } catch (err) {
-    // A provider failure (bad key, no credits, rate limit) is not our bug: log it and tell the agent
-    console.error(err)
+    // A provider failure (bad key, no credits, rate limit) is not our bug: report it and tell the agent
+    reportError('AI polish failed', err)
     res.status(502).json({ error: aiErrorMessage(err, 'AI polishing is unavailable right now. Try again later.') })
   }
 })
@@ -200,7 +201,7 @@ ticketsRouter.post('/:id/summary', requireAuth, async (req, res) => {
   try {
     res.json({ summary: await summarizeTicket(ticket, replies) })
   } catch (err) {
-    console.error(err)
+    reportError('AI summary failed', err)
     res.status(502).json({ error: aiErrorMessage(err, 'AI summaries are unavailable right now. Try again later.') })
   }
 })
@@ -221,7 +222,7 @@ ticketsRouter.post('/:id/replies', requireAuth, async (req, res) => {
   try {
     await sendReplyEmail(ticket, body.body)
   } catch (err) {
-    console.error(`Ticket ${id}: could not email the reply`, err)
+    reportError(`Ticket ${id}: could not email the reply`, err)
     res.status(502).json({ error: 'Could not email the customer. The reply was not saved, try again later.' })
     return
   }

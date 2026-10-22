@@ -1,3 +1,5 @@
+import './instrument'
+import * as Sentry from '@sentry/bun'
 import { toNodeHandler } from 'better-auth/node'
 import cors from 'cors'
 import express from 'express'
@@ -35,6 +37,9 @@ app.use('/api/webhooks', webhooksRouter)
 // Terminal error handler: log details server-side, never leak stack traces to clients
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err)
+  // Report server faults to Sentry, but not mistakes by the caller (e.g. malformed JSON, which carries a 4xx status)
+  const status = typeof err === 'object' && err !== null && 'status' in err ? Number(err.status) : 500
+  if (!(status >= 400 && status < 500)) Sentry.captureException(err)
   res.status(500).json({ error: 'Internal server error' })
 })
 
@@ -53,6 +58,9 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     server.close()
     smtpServer?.close()
     imapPoller?.stop()
-    void stopQueue().finally(() => process.exit(0))
+    // Send pending Sentry events before exiting
+    void stopQueue()
+      .finally(() => Sentry.close(2000))
+      .finally(() => process.exit(0))
   })
 }

@@ -2,6 +2,7 @@ import { TicketStatus } from '@helpdesk/core'
 import { prisma } from '../db'
 import { autoResolveTicket, openTicket } from './autoResolveTicket'
 import { classifyAndSaveTicket } from './classifyTicket'
+import { reportError } from './reportError'
 
 // Job handler (see queue.ts): runs the two independent steps for a ticket, classification and auto-resolve.
 // A new ticket moves NEW -> PROCESSING -> RESOLVED or OPEN. If any step fails (e.g. generateText throws), the ticket
@@ -30,7 +31,7 @@ export async function processTicket(id: number) {
     // Tickets that are already past NEW (e.g. the backfill script) are only classified
     if (isWorking) await autoResolveTicket(id, ticket)
   } catch (err) {
-    console.error(`Ticket ${id}: processing failed, opening it`, err)
+    reportError(`Ticket ${id}: processing failed, opening it`, err)
     if (isWorking) await openTicket(id)
   }
 }

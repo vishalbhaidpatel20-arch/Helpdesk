@@ -4,6 +4,7 @@ import type { Readable } from 'node:stream'
 import { handleIncomingEmail, InvalidEmailError } from './handleIncomingEmail'
 import type { ParsedEmail } from './handleIncomingEmail'
 import { toParsedEmail } from './toParsedEmail'
+import { reportError } from './reportError'
 
 const DEFAULT_PORT = 2525
 const DEFAULT_MAX_BYTES = 10 * 1024 * 1024
@@ -67,7 +68,7 @@ export function createSmtpServer({ domain, maxBytes = DEFAULT_MAX_BYTES, onEmail
         try {
           email = toParsedEmail(await simpleParser(raw))
         } catch (err) {
-          console.error('[smtp] could not parse message', err)
+          reportError('[smtp] could not parse message', err)
           return callback(smtpError('Message could not be parsed', 550))
         }
 
@@ -83,7 +84,7 @@ export function createSmtpServer({ domain, maxBytes = DEFAULT_MAX_BYTES, onEmail
             return callback(smtpError(err.message, 550))
           }
           // Temporary failure (e.g. database down): the sender retries, and a repeated Message-ID is not duplicated
-          console.error('[smtp] could not handle message', err)
+          reportError('[smtp] could not handle message', err)
           callback(smtpError('Temporary failure, try again later', 451))
         }
       })()
@@ -91,7 +92,7 @@ export function createSmtpServer({ domain, maxBytes = DEFAULT_MAX_BYTES, onEmail
   })
 
   // Without a listener an 'error' event would crash the whole API process
-  server.on('error', (err) => console.error('[smtp] server error', err))
+  server.on('error', (err) => reportError('[smtp] server error', err))
   return server
 }
 

@@ -9,7 +9,7 @@ const serverDir = path.resolve(import.meta.dir, '..')
 process.env.NODE_ENV = 'development'
 // Bun already loaded server/.env, which holds the real mailbox credentials: drop them so the e2e server never
 // polls the real inbox or sends real email (.env.test can still set them on purpose)
-for (const key of ['IMAP_USER', 'IMAP_PASSWORD', 'MAIL_USER', 'MAIL_PASSWORD', 'SMTP_PASSWORD', 'SMTP_DOMAIN']) {
+for (const key of ['IMAP_USER', 'IMAP_PASSWORD', 'MAIL_USER', 'MAIL_PASSWORD', 'SMTP_PASSWORD', 'SMTP_DOMAIN', 'SENTRY_DSN']) {
   delete process.env[key]
 }
 dotenv.config({ path: path.join(serverDir, '.env.test'), override: true })

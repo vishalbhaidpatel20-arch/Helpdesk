@@ -2,6 +2,7 @@ import { ImapFlow } from 'imapflow'
 import { simpleParser } from 'mailparser'
 import { handleIncomingEmail, InvalidEmailError } from './handleIncomingEmail'
 import type { ParsedEmail } from './handleIncomingEmail'
+import { reportError } from './reportError'
 import { toParsedEmail } from './toParsedEmail'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -53,7 +54,7 @@ export async function pollInbox(config: ImapConfig, handle: HandleEmail = handle
     logger: false,
   })
   // Without a listener an 'error' event would crash the whole API process
-  client.on('error', (err) => console.error('[imap] connection error', err))
+  client.on('error', (err) => reportError('[imap] connection error', err))
 
   await client.connect()
   try {
@@ -81,7 +82,7 @@ export async function pollInbox(config: ImapConfig, handle: HandleEmail = handle
         try {
           email = toParsedEmail(await simpleParser(message.source))
         } catch (err) {
-          console.error(`[imap] could not parse message ${uid}`, err)
+          reportError(`[imap] could not parse message ${uid}`, err)
           await markRead()
           continue
         }
@@ -96,7 +97,7 @@ export async function pollInbox(config: ImapConfig, handle: HandleEmail = handle
             console.warn(`[imap] rejected message ${uid}: ${err.message}`)
             await markRead()
           } else {
-            console.error(`[imap] could not handle message ${uid}, will retry`, err)
+            reportError(`[imap] could not handle message ${uid}, will retry`, err)
           }
         }
       }
@@ -125,7 +126,7 @@ export function startImapPoller() {
     try {
       await pollInbox(config)
     } catch (err) {
-      console.error(`[imap] poll of ${config.host} failed`, err)
+      reportError(`[imap] poll of ${config.host} failed`, err)
     }
     if (!stopped) timer = setTimeout(run, config.pollSeconds * 1000)
   }
