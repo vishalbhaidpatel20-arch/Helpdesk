@@ -73,10 +73,15 @@ ticketsRouter.get('/agents', requireAuth, async (_req, res) => {
   res.json({ agents })
 })
 
-// A non-numeric id is treated as not found
+// Ticket ids are Postgres `integer`s (32-bit)
+const MAX_TICKET_ID = 2_147_483_647
+
+// A non-numeric or out-of-range id is treated as not found. Only plain digits are accepted ("1e3", "0x10", " 7" and
+// "" are not ids), and anything above the column's range would make Prisma throw (a 500) instead of a 404.
 function parseTicketId(value: string) {
+  if (!/^\d{1,10}$/.test(value)) return undefined
   const id = Number(value)
-  return Number.isSafeInteger(id) ? id : undefined
+  return id >= 1 && id <= MAX_TICKET_ID ? id : undefined
 }
 
 // Any signed-in user.
