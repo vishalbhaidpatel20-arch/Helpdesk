@@ -3,7 +3,7 @@
   "bunVersion": "1.4.x",
   "framework": null,
   "installCommand": "bun install --frozen-lockfile",
-  "buildCommand": "bun run --cwd server db:generate && bun run --cwd server db:deploy && bun run --cwd server build && bun run --cwd client build",
+  "buildCommand": "bun run --cwd server db:generate && PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 bun run --cwd server db:deploy && bun run --cwd server build && bun run --cwd client build",
   "outputDirectory": "client/dist",
   "functions": {
     "api/index.ts": {

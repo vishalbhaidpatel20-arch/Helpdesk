@@ -19,6 +19,8 @@ Vercel Functions start per request and cannot keep background processes alive, s
 
 Create a PostgreSQL database and copy its **pooled** connection string (Neon: "Pooled connection"; Supabase: the transaction pooler on port 6543). Each function instance opens its own connection, so a pooler is needed to avoid running out of connections.
 
+**Migrations and the pooler:** `prisma migrate deploy` takes a Postgres advisory lock, which a pooled (pgbouncer) connection cannot hold, so the build timed out with P1002. `vercel.json` sets `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1` for that step. Fine for one deployer at a time, which is how Vercel builds a project.
+
 ## 2. Import the project
 
 1. Push the repo to GitHub.
