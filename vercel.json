@@ -1,19 +1,32 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "bunVersion": "1.4.x",
-  "framework": null,
-  "installCommand": "bun install --frozen-lockfile",
-  "buildCommand": "bun run --cwd server db:generate && bun run --cwd server db:deploy && bun run --cwd client build",
-  "outputDirectory": "client/dist",
-  "functions": {
-    "api/index.ts": {
-      "maxDuration": 60,
-      "includeFiles": "server/{knowledge-base.md,generated/**}"
+  "services": {
+    "app": {
+      "root": ".",
+      "runtime": "container"
+    },
+    "client": {
+      "root": "client",
+      "framework": "vite"
+    },
+    "server": {
+      "root": "server",
+      "framework": "express"
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "server"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
   ],
   "crons": [{ "path": "/api/cron/poll-inbox", "schedule": "0 8 * * *" }]
 }
