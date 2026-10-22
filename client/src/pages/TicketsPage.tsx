@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import TicketFilters from '@/components/TicketFilters'
 import TicketsPagination from '@/components/TicketsPagination'
 import TicketsTable from '@/components/TicketsTable'
@@ -6,10 +7,17 @@ import { useTickets } from '@/hooks/useTickets'
 
 export default function TicketsPage() {
   const { params, setParams } = useTicketParams()
-  const { data, error } = useTickets(params)
+  const { data, error, isPlaceholderData } = useTickets(params)
+
+  // A page past the end (an old link, or the list shrank after a filter or status change) would show an empty table
+  // and "Page 5 of 2": go to the last page that exists instead
+  const lastPage = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : undefined
+  useEffect(() => {
+    if (lastPage !== undefined && !isPlaceholderData && params.page > lastPage) setParams({ page: lastPage })
+  }, [lastPage, isPlaceholderData, params.page, setParams])
 
   return (
-    <main className="mx-auto max-w-5xl p-4 sm:p-8">
+    <main className="mx-auto w-full max-w-5xl p-4 sm:p-8">
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Tickets</h1>
       <TicketFilters params={params} onChange={setParams} />
       {error ? (

@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const { data, error } = useTicketStats()
 
   return (
-    <main className="mx-auto max-w-7xl p-4 sm:p-8">
+    <main className="mx-auto w-full max-w-7xl p-4 sm:p-8">
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
       {error ? (
         <p role="alert" className="mt-4 text-sm text-destructive">

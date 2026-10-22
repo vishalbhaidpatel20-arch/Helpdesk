@@ -15,7 +15,7 @@ export default function TicketDetailPage() {
   const { data: ticket, error } = useTicket(id)
 
   return (
-    <main className="mx-auto max-w-5xl p-4 sm:p-8">
+    <main className="mx-auto w-full max-w-5xl p-4 sm:p-8">
       <AppLink to="/tickets" className="inline-flex items-center gap-1">
         <ArrowLeftIcon className="size-4" aria-hidden />
         Back to tickets

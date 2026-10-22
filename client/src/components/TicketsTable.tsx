@@ -19,6 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { categoryLabels, statusColors, statusLabels } from '@/lib/tickets'
+import { cn } from '@/lib/utils'
 
 type Sort = Pick<TicketListQuery, 'sort' | 'order'>
 
@@ -52,7 +53,7 @@ const columns = helper.columns([
     cell: ({ row }) => (
       <>
         <div>{row.original.senderName}</div>
-        <div className="text-muted-foreground">{row.original.senderEmail}</div>
+        <div className="text-xs text-muted-foreground sm:text-sm">{row.original.senderEmail}</div>
       </>
     ),
   }),
@@ -60,7 +61,7 @@ const columns = helper.columns([
     header: 'Status',
     sortDescFirst: false,
     cell: (info) => (
-      <Badge variant="secondary" className={statusColors[info.getValue()]}>
+      <Badge variant="secondary" className={cn('h-5 px-1.5 text-[11px] sm:px-2 sm:text-xs', statusColors[info.getValue()])}>
         {statusLabels[info.getValue()]}
       </Badge>
     ),
@@ -85,6 +86,13 @@ const columns = helper.columns([
 const NO_TICKETS: Ticket[] = []
 
 // Secondary columns are hidden on small screens so the table fits a phone without sideways scrolling
+// Subject and sender wrap (instead of the cell default of one long line) so a long subject or email address can't
+// push the table past the edge of the screen
+const wrapText: Record<string, string> = {
+  subject: 'whitespace-normal break-words',
+  sender: 'whitespace-normal break-all sm:break-words',
+}
+
 const hiddenOnSmall: Record<string, string> = {
   category: 'hidden md:table-cell',
   createdAt: 'hidden sm:table-cell',
@@ -116,7 +124,7 @@ export default function TicketsTable({ tickets, params, onSortChange }: Props) {
 
   return (
     <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
-    <Table aria-busy={tickets === undefined}>
+    <Table aria-busy={tickets === undefined} className="text-xs sm:text-sm">
       <TableHeader>
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
@@ -186,7 +194,7 @@ export default function TicketsTable({ tickets, params, onSortChange }: Props) {
           table.getRowModel().rows.map((row) => (
             <TableRow key={row.id} className="transition-colors hover:bg-accent/60">
               {row.getAllCells().map((cell) => (
-                <TableCell key={cell.id} className={hiddenOnSmall[cell.column.id]}>
+                <TableCell key={cell.id} className={cn(hiddenOnSmall[cell.column.id], wrapText[cell.column.id])}>
                   <table.FlexRender cell={cell} />
                 </TableCell>
               ))}

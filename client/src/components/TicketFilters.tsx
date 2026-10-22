@@ -17,6 +17,7 @@ export default function TicketFilters({ params, onChange }: Props) {
         <Label htmlFor="ticket-status">Status</Label>
         <NativeSelect
           id="ticket-status"
+          className="w-44"
           value={params.status ?? ''}
           onChange={(e) =>
             onChange({ status: e.target.value ? (e.target.value as (typeof AGENT_TICKET_STATUSES)[number]) : undefined })
@@ -34,6 +35,7 @@ export default function TicketFilters({ params, onChange }: Props) {
         <Label htmlFor="ticket-category">Category</Label>
         <NativeSelect
           id="ticket-category"
+          className="w-44"
           value={params.category ?? ''}
           onChange={(e) =>
             onChange({ category: e.target.value ? (e.target.value as TicketCategory) : undefined })
