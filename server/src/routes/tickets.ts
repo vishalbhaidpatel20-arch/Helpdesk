@@ -5,6 +5,7 @@ import { prisma } from '../db'
 import { aiErrorMessage } from '../lib/aiError'
 import { parseBody, parseQuery } from '../lib/parseBody'
 import { polishReply } from '../lib/polishReply'
+import { sendReplyEmail } from '../lib/sendEmail'
 import { summarizeTicket } from '../lib/summarizeTicket'
 import { requireAuth, type Session } from '../middleware/auth'
 
@@ -209,11 +210,21 @@ ticketsRouter.post('/:id/replies', requireAuth, async (req, res) => {
   const body = parseBody(createReplySchema, req, res)
   if (!body) return
   const id = parseTicketId(String(req.params.id))
-  if (id === undefined || !(await prisma.ticket.findUnique({ where: { id } }))) {
+  const ticket = id === undefined ? null : await prisma.ticket.findUnique({ where: { id } })
+  if (id === undefined || !ticket) {
     res.status(404).json({ error: 'Ticket not found' })
     return
   }
   const session = res.locals.session as Session
+  // Emailed before it is saved: if the mail server refuses it the reply is not stored, so the agent can simply retry
+  // without leaving a reply in the thread that the customer never received
+  try {
+    await sendReplyEmail(ticket, body.body)
+  } catch (err) {
+    console.error(`Ticket ${id}: could not email the reply`, err)
+    res.status(502).json({ error: 'Could not email the customer. The reply was not saved, try again later.' })
+    return
+  }
   const reply = await prisma.reply.create({
     data: { ticketId: id, authorId: session.user.id, body: body.body },
     select: replySelect,

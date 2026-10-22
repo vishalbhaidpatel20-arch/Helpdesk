@@ -9,7 +9,7 @@ import { classifyAndSaveTicket } from './classifyTicket'
 export async function processTicket(id: number) {
   const ticket = await prisma.ticket.findUnique({
     where: { id },
-    select: { subject: true, body: true, senderName: true, category: true, status: true },
+    select: { subject: true, body: true, senderName: true, senderEmail: true, messageId: true, category: true, status: true },
   })
   if (!ticket) return
   const isWorking = ticket.status === TicketStatus.NEW || ticket.status === TicketStatus.PROCESSING
