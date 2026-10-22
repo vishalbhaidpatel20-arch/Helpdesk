@@ -44,7 +44,7 @@ export function parseAnswer(text: string) {
 }
 
 // The reply to save when the knowledge base resolves the ticket, or null when a human should handle it.
-// Provider errors propagate (the job retries).
+// Provider errors propagate to the caller, which opens the ticket for the agents (no retry).
 export async function resolveTicket(ticket: { subject: string; body: string; senderName: string }, knowledgeBase: string) {
   const prompt = `<knowledge_base>\n${knowledgeBase}\n</knowledge_base>\n\n<ticket_subject>\n${ticket.subject}\n</ticket_subject>\n\n<customer_email>\n${ticket.body}\n</customer_email>`
   const answer = parseAnswer(await generateWithFallback({ instructions, prompt }))

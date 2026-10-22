@@ -12,8 +12,11 @@ PostgreSQL
 # ORM
 Prisma
 # AI
-Claude API (Anthropic) for ticket classification, summaries, and suggested replies
+Google Gemini via the Vercel AI SDK for ticket classification, summaries, reply polishing and auto-resolve
 # Email
-SendGrid or Mailgun for outbound replies and inbound webhooks
+Inbound: JSON webhook (provider adapters for SendGrid/Mailgun not built yet), built-in SMTP server, or IMAP polling
+Outbound replies: nodemailer over SMTP (e.g. Gmail)
+# Background jobs
+pg-boss (Postgres-backed queue); on Vercel, jobs run with waitUntil
 # Deployment
 Vercel (client on the CDN, API as a Vercel Function on the Bun runtime) + hosted PostgreSQL

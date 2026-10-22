@@ -117,7 +117,7 @@ model Ticket {
   @@map("ticket")
 }
 
-// An agent's reply on a ticket (stored only; sending it by email is not built yet)
+// A reply on a ticket, emailed to the customer before it is saved
 model Reply {
   id        Int      @id @default(autoincrement())
   ticketId  Int
