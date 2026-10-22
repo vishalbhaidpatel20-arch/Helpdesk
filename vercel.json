@@ -2,13 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.4.x",
   "framework": null,
-  "installCommand": "bun install --frozen-lockfile --linker hoisted",
-  "buildCommand": "bun run --cwd server db:generate && bun run --cwd server db:deploy && bun run --cwd client build",
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "bun run --cwd server db:generate && bun run --cwd server db:deploy && bun run --cwd server build && bun run --cwd client build",
   "outputDirectory": "client/dist",
   "functions": {
     "api/index.ts": {
       "maxDuration": 60,
-      "includeFiles": "{server/knowledge-base.md,server/generated/**,server/tsconfig.json,core/**,node_modules/@better-auth/**}"
+      "includeFiles": "server/knowledge-base.md"
     }
   },
   "rewrites": [

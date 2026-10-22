@@ -1,4 +1,0 @@
-# Vercel traces files for the API function through node_modules; the default isolated layout (node_modules/.bun)
-# hides transitive packages from it, so install a flat, hoisted tree.
-[install]
-linker = "hoisted"

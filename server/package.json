@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
+    "build": "bun build src/app.ts --target=bun --outfile=dist/app.js",
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
     "db:migrate": "prisma migrate dev",
