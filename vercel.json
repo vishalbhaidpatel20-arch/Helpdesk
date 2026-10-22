@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.4.x",
   "framework": null,
-  "installCommand": "bun install --frozen-lockfile",
+  "installCommand": "bun install --frozen-lockfile --linker hoisted",
   "buildCommand": "bun run --cwd server db:generate && bun run --cwd server db:deploy && bun run --cwd client build",
   "outputDirectory": "client/dist",
   "functions": {
