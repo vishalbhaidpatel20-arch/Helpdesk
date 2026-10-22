@@ -53,7 +53,7 @@ const columns = helper.columns([
     cell: ({ row }) => (
       <>
         <div>{row.original.senderName}</div>
-        <div className="text-[10px] text-muted-foreground sm:text-sm">{row.original.senderEmail}</div>
+        <div className="text-xs text-muted-foreground sm:text-sm">{row.original.senderEmail}</div>
       </>
     ),
   }),
@@ -61,7 +61,7 @@ const columns = helper.columns([
     header: 'Status',
     sortDescFirst: false,
     cell: (info) => (
-      <Badge variant="secondary" className={cn('h-4 px-1 text-[9px] sm:h-5 sm:px-2 sm:text-xs', statusColors[info.getValue()])}>
+      <Badge variant="secondary" className={cn('h-5 px-1.5 text-[11px] sm:px-2 sm:text-xs', statusColors[info.getValue()])}>
         {statusLabels[info.getValue()]}
       </Badge>
     ),
@@ -124,7 +124,7 @@ export default function TicketsTable({ tickets, params, onSortChange }: Props) {
 
   return (
     <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
-    <Table aria-busy={tickets === undefined} className="text-[11px] sm:text-sm">
+    <Table aria-busy={tickets === undefined} className="text-xs sm:text-sm">
       <TableHeader>
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
