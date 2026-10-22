@@ -26,15 +26,20 @@
     "dotenv": "^17.0.0",
     "express": "^5.0.0",
     "helmet": "^8.3.0",
+    "imapflow": "^2.8.0",
+    "mailparser": "^3.12.2",
     "pg": "^8.23.1",
     "pg-boss": "^12.38.0",
+    "smtp-server": "^3.21.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/mailparser": "^3.9.0",
     "@types/pg": "^8.23.1",
+    "@types/smtp-server": "^3.5.13",
     "prisma": "^7.10.1",
     "typescript": "^5.0.0"
   }

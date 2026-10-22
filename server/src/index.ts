@@ -4,7 +4,9 @@ import express from 'express'
 import type { NextFunction, Request, Response } from 'express'
 import helmet from 'helmet'
 import { auth } from './auth'
+import { startImapPoller } from './lib/imapPoller'
 import { startQueue, stopQueue } from './lib/queue'
+import { startSmtpServer } from './lib/smtpServer'
 import { statsRouter } from './routes/stats'
 import { ticketsRouter } from './routes/tickets'
 import { usersRouter } from './routes/users'
@@ -42,10 +44,15 @@ const server = app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`)
 })
 
+const smtpServer = startSmtpServer()
+const imapPoller = startImapPoller()
+
 // Let the running job finish before exiting
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, () => {
     server.close()
+    smtpServer?.close()
+    imapPoller?.stop()
     void stopQueue().finally(() => process.exit(0))
   })
 }
